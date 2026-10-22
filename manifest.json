@@ -1,0 +1,71 @@
+{
+  "manifest_version": 3,
+  "name": "Codextent – Predict Code Output",
+  "short_name": "Codextent",
+  "version": "0.7.2",
+  "description": "Predict the output of C, C++, Java, Python and MySQL examples on 8 learning sites, then check it and learn the concepts.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_title": "Codextent",
+    "default_popup": "src/popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png"
+    }
+  },
+  "background": {
+    "service_worker": "src/background.js"
+  },
+  "options_page": "src/options/options.html",
+  "permissions": [
+    "storage",
+    "contextMenus"
+  ],
+  "commands": {
+    "clip-selection": {
+      "suggested_key": { "default": "Alt+Shift+S" },
+      "description": "Save the selected code to My Revision Vault"
+    }
+  },
+  "host_permissions": [
+    "https://ce.judge0.com/*",
+    "https://judge0-ce.p.rapidapi.com/*"
+  ],
+  "optional_host_permissions": [
+    "https://*/*",
+    "http://localhost/*",
+    "http://127.0.0.1/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.geeksforgeeks.org/*",
+        "https://www.programiz.com/*",
+        "https://www.w3schools.com/*",
+        "https://www.tutorialspoint.com/*",
+        "https://www.javatpoint.com/*",
+        "https://www.scaler.com/topics/*",
+        "https://www.studytonight.com/*",
+        "https://www.sanfoundry.com/*"
+      ],
+      "js": [
+        "src/lib/detector.js",
+        "src/lib/render.js",
+        "src/lib/concepts.js",
+        "src/lib/concepts-lang.js",
+        "src/content/adapters.js",
+        "src/content/panel-styles.js",
+        "src/content/content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  }
+}

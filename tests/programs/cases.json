@@ -1,0 +1,128 @@
+{
+  "01_hello.cpp": {
+    "category": "ok",
+    "stdin": "",
+    "stdout": "Hello, World!\n",
+    "wrongPrediction": "Hello World!",
+    "language": "cpp"
+  },
+  "02_multiline.cpp": {
+    "category": "ok",
+    "stdin": "",
+    "stdout": "Line 1\n\n  Line 3 (indented)\nTab:\tend\n",
+    "wrongPrediction": "Line 1\n  Line 3 (indented)\nTab:\tend",
+    "language": "cpp"
+  },
+  "03_loop.cpp": {
+    "category": "ok",
+    "stdin": "",
+    "stdout": "1 \n1 2 \n1 2 3 \n",
+    "lenientPrediction": "1\n1 2\n1 2 3",
+    "wrongPrediction": "1\n12\n123",
+    "language": "cpp"
+  },
+  "04_functions.cpp": {
+    "category": "ok",
+    "stdin": "",
+    "stdout": "5! = 120\nx=2 y=1\n123\n",
+    "wrongPrediction": "5! = 120\nx=1 y=2\n123",
+    "language": "cpp"
+  },
+  "05_input.cpp": {
+    "category": "ok",
+    "stdin": "5 10 Ravi\n",
+    "stdout": "Sum: 15\nHi Ravi!\n",
+    "wrongPrediction": "Sum: 510\nHi Ravi!",
+    "language": "cpp"
+  },
+  "06_compile_error.cpp": {
+    "category": "compile_error",
+    "stdin": "",
+    "language": "cpp"
+  },
+  "07_runtime_error.cpp": {
+    "category": "runtime_error",
+    "stdin": "",
+    "stdout": "Before crash\n",
+    "language": "cpp"
+  },
+  "08_infinite_loop.cpp": {
+    "category": "timeout",
+    "stdin": "",
+    "language": "cpp"
+  },
+  "09_c_loop.c": {
+    "language": "c",
+    "category": "ok",
+    "stdin": "",
+    "stdout": "1 squared = 1\n2 squared = 4\n3 squared = 9\n3.50\n3\n",
+    "wrongPrediction": "1 squared = 1\n2 squared = 4\n3 squared = 9\n3.50\n3.5"
+  },
+  "10_c_input.c": {
+    "language": "c",
+    "category": "ok",
+    "stdin": "4 9\n",
+    "stdout": "max = 9\n",
+    "wrongPrediction": "max = 4"
+  },
+  "11_java_gfg.java": {
+    "language": "java",
+    "category": "ok",
+    "stdin": "",
+    "stdout": "Square: 25\nabab\n[1, 2, 3]\n",
+    "wrongPrediction": "Square: 25\nabab\n[3, 1, 2]"
+  },
+  "12_java_scanner.java": {
+    "language": "java",
+    "category": "ok",
+    "stdin": "Ravi 20\n",
+    "stdout": "Ravi will be 21 next year\n",
+    "wrongPrediction": "Ravi will be 201 next year"
+  },
+  "13_java_exception.java": {
+    "language": "java",
+    "category": "runtime_error",
+    "stdin": "",
+    "stdout": "start\n"
+  },
+  "14_python_basic.py": {
+    "language": "python",
+    "category": "ok",
+    "stdin": "",
+    "stdout": "[1, 2, 3]\n0 1 | 1 2 | 2 3 | \n3 items, sum 6\n3 3.5\n",
+    "lenientPrediction": "[1, 2, 3]\n0 1 | 1 2 | 2 3 |\n3 items, sum 6\n3 3.5",
+    "wrongPrediction": "[1, 2, 3]\n0 1 | 1 2 | 2 3 |\n3 items, sum 6\n3.5 3.5"
+  },
+  "15_python_input.py": {
+    "language": "python",
+    "category": "ok",
+    "stdin": "Ravi\n3\n",
+    "stdout": "Hi Ravi!!!\n",
+    "wrongPrediction": "Hi Ravi!3"
+  },
+  "16_python_error.py": {
+    "language": "python",
+    "category": "runtime_error",
+    "stdin": "",
+    "stdout": "before\n"
+  },
+  "17_sql_join.sql": {
+    "language": "sql",
+    "category": "ok",
+    "stdin": "",
+    "stdout": "name|title\nAsha|CSE\nMeena|CSE\nRavi|ECE\n",
+    "wrongPrediction": "Asha CSE\nRavi ECE\nMeena CSE"
+  },
+  "18_sql_group.sql": {
+    "language": "sql",
+    "category": "ok",
+    "stdin": "",
+    "stdout": "region|n|total\nEast|0|\nNorth|2|170\nSouth|1|50\n",
+    "wrongPrediction": "East 1 0\nNorth 2 170\nSouth 1 50"
+  },
+  "19_sql_error.sql": {
+    "language": "sql",
+    "category": "runtime_error",
+    "stdin": ""
+  }
+}

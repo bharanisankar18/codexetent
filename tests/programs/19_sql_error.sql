@@ -1,0 +1,2 @@
+CREATE TABLE t (x INT);
+SELEC x FROM t;

@@ -1,0 +1,85 @@
+<!doctype html>
+<html>
+<head><title>C++ for Loop (With Examples)</title></head>
+<body>
+<!--
+  Modelled on the live Programiz structure (checked Oct 2026):
+  runnable = div.code-editor > .code-editor__area > div.pre-code-wrapper > pre.X-exec > code.hljs
+  Expected buttons: 4 (cpp-1, c-1, java-1, python-1). Not: syntax snippet, samp output.
+-->
+<header><pre class="cpp-exec"><code>#include &lt;iostream&gt;
+int main() { std::cout &lt;&lt; "header"; }</code></pre></header>
+<div class="editor-contents">
+ <div class="node node-cpp-tutorial node-promoted clearfix">
+  <div class="content">
+    <h1>C++ for Loop</h1>
+    <pre id="syntax"><code class="cpp hljs">for (initialization; condition; update) {
+    // body of-loop
+}</code></pre>
+
+    <div class="code-editor" id="ed-cpp-1">
+      <div class="code-editor__area">
+        <div class="pre-code-wrapper">
+          <div class="copy-code-button">Copy</div>
+          <pre class="cpp-exec" id="cpp-1"><code class="cpp hljs"><span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;iostream&gt;</span></span>
+
+<span class="hljs-keyword">using</span> <span class="hljs-keyword">namespace</span> <span class="hljs-built_in">std</span>;
+
+<span class="hljs-function"><span class="hljs-type">int</span> <span class="hljs-title">main</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">for</span> (<span class="hljs-type">int</span> i = <span class="hljs-number">1</span>; i &lt;= <span class="hljs-number">5</span>; ++i) {
+        cout &lt;&lt; i &lt;&lt; <span class="hljs-string">" "</span>;
+    }
+    <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;
+}</code></pre>
+        </div>
+      </div>
+      <div class="code-editor__action"><a class="btn run-code-button" href="#">Run Code</a></div>
+    </div>
+    <p><strong>Output</strong></p>
+    <pre id="output-1"><samp>1 2 3 4 5 </samp></pre>
+
+    <div class="code-editor" id="ed-c-1">
+      <div class="code-editor__area"><div class="pre-code-wrapper">
+        <div class="copy-code-button">Copy</div>
+        <pre class="c-exec" id="c-1"><code class="c hljs cpp">#include &lt;stdio.h&gt;
+
+int main() {
+  int i;
+  for (i = 1; i &lt; 4; ++i) {
+    printf("%d ", i);
+  }
+  return 0;
+}</code></pre>
+      </div></div>
+    </div>
+
+    <div class="code-editor" id="ed-java-1">
+      <div class="code-editor__area"><div class="pre-code-wrapper">
+        <pre class="java-exec" id="java-1"><code class="java hljs">class Main {
+  public static void main(String[] args) {
+    int n = 3;
+    for (int i = 1; i &lt;= n; ++i) {
+      System.out.println("Java is fun");
+    }
+  }
+}</code></pre>
+      </div></div>
+    </div>
+
+    <div class="code-editor" id="ed-python-1">
+      <div class="code-editor__area"><div class="pre-code-wrapper">
+        <pre class="python-exec" id="python-1"><code class="python hljs">languages = ['Swift', 'Python', 'Go']
+
+# access elements of the list one by one
+for lang in languages:
+    print(lang)</code></pre>
+      </div></div>
+    </div>
+    <pre id="output-py"><samp>Swift
+Python
+Go</samp></pre>
+  </div>
+ </div>
+</div>
+</body>
+</html>

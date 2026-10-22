@@ -1,0 +1,91 @@
+<!doctype html>
+<html>
+<head><title>For Loop in C++ - GeeksforGeeks</title></head>
+<body>
+<!--
+  Test fixture modelled on GeeksforGeeks article markup patterns
+  (SyntaxHighlighter tables, pre/code with language classes, multi-language tabs,
+  "Output" blocks, comment section). Not a copy of a real page.
+  Expected Predict-Output buttons: 3 (ids: sh-cpp, pre-cpp, tab-cpp).
+-->
+<header><pre>int main() { std::cout << "header"; }</pre></header>
+<article>
+  <div class="text">
+    <h1>For Loop in C++</h1>
+
+    <!-- 1. Old SyntaxHighlighter style: C++ (should get a button) -->
+    <div id="sh-cpp" class="syntaxhighlighter nogutter cpp">
+      <table border="0" cellpadding="0" cellspacing="0"><tbody><tr>
+        <td class="gutter"><div class="line number1 index0 alt2">1</div><div class="line number2 index1 alt1">2</div></td>
+        <td class="code"><div class="container">
+          <div class="line number1 index0 alt2"><code class="cpp preprocessor">#include</code> <code class="cpp plain">&lt;iostream&gt;</code></div>
+          <div class="line number2 index1 alt1"><code class="cpp keyword bold">using</code> <code class="cpp keyword bold">namespace</code> <code class="cpp plain">std;</code></div>
+          <div class="line number3 index2 alt2"><code class="cpp color1 bold">int</code> <code class="cpp plain">main() {</code></div>
+          <div class="line number4 index3 alt1"><code class="cpp spaces">&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="cpp keyword bold">for</code> <code class="cpp plain">(</code><code class="cpp color1 bold">int</code> <code class="cpp plain">i = 1; i &lt;= 3; i++)</code></div>
+          <div class="line number5 index4 alt2"><code class="cpp spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="cpp plain">cout &lt;&lt; i &lt;&lt; </code><code class="cpp string">" "</code><code class="cpp plain">;</code></div>
+          <div class="line number6 index5 alt1"><code class="cpp spaces">&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="cpp keyword bold">return</code> <code class="cpp plain">0;</code></div>
+          <div class="line number7 index6 alt2"><code class="cpp plain">}</code></div>
+        </div></td>
+      </tr></tbody></table>
+    </div>
+
+    <p><strong>Output</strong></p>
+    <pre id="output-block">1 2 3 </pre>
+
+    <!-- 2. Modern pre/code style with a line-number gutter inside the wrapper (should get a button) -->
+    <div class="code-container" id="wrap-pre-cpp">
+      <div class="code-gutter"><span>1</span><span>2</span><span>3</span></div>
+      <pre id="pre-cpp"><code class="language-cpp">#include &lt;bits/stdc++.h&gt;
+using namespace std;
+
+int square(int x) { return x * x; }
+
+int main() {
+    cout &lt;&lt; "Square: " &lt;&lt; square(4) &lt;&lt; endl;
+    return 0;
+}</code><button class="copy-button">Copy Code</button></pre>
+    </div>
+
+    <!-- 3. Multi-language tabs: only the C++ tab should get a button -->
+    <div class="tabs-container">
+      <ul class="tabs"><li>C++</li><li>C</li><li>Java</li><li>Python</li></ul>
+      <div class="tab-panel"><pre id="tab-cpp">#include &lt;iostream&gt;
+int main() {
+    int a, b;
+    std::cin &gt;&gt; a &gt;&gt; b;
+    std::cout &lt;&lt; a + b &lt;&lt; "\n";
+}</pre></div>
+      <div class="tab-panel" style="display:none"><pre id="tab-c" class="language-c">#include &lt;stdio.h&gt;
+int main() {
+    printf("Hello from C\n");
+    return 0;
+}</pre></div>
+      <div class="tab-panel" style="display:none"><pre id="tab-java">import java.util.*;
+public class Main {
+    public static void main(String[] args) {
+        System.out.println("Hello");
+    }
+}</pre></div>
+      <div class="tab-panel" style="display:none"><pre id="tab-python">def main():
+    print("Hello")
+
+main()</pre></div>
+    </div>
+
+    <!-- 4. C++ snippet with no main(): not runnable, no button -->
+    <pre id="snippet"><code class="language-cpp">for (int i = 0; i &lt; n; i++) {
+    std::cout &lt;&lt; arr[i];
+}</code></pre>
+
+    <!-- 5. Shell command block: no button -->
+    <pre id="shell">g++ -std=c++17 main.cpp -o main &amp;&amp; ./main</pre>
+  </div>
+</article>
+
+<!-- 6. Comment section: ignored even though it is C++ -->
+<div id="comments">
+  <pre id="comment-cpp">#include &lt;iostream&gt;
+int main() { std::cout &lt;&lt; "from a comment"; }</pre>
+</div>
+</body>
+</html>

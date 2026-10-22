@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Codextent Settings</title>
+  <link rel="stylesheet" href="../ui/pages.css">
+  <script src="../ui/theme.js"></script>
+  <style>
+    main { max-width: 760px; margin: 0 auto; padding: 28px 16px 56px; }
+    .card { margin-top: 16px; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 18px; }
+    #status { margin-top: 12px; white-space: pre-wrap; }
+    .ids { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+    .ids label { margin: 0 0 3px; font-weight: 500; color: var(--muted); font-size: 12px; }
+    .sub { margin: -4px 0 12px; color: var(--muted); font-size: 12.5px; }
+    /* theme picker */
+    .themes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    .theme { text-align: left; cursor: pointer; padding: 8px; border-radius: 14px; border: 1px solid var(--line-2); background: transparent; color: var(--text);
+             font: inherit; transition: box-shadow .2s, border-color .2s; }
+    .theme:hover { box-shadow: var(--glow); }
+    .theme[aria-pressed="true"] { border-color: var(--strong); box-shadow: 0 0 0 1px var(--strong); }
+    .theme .pv { height: 70px; border-radius: 9px; position: relative; overflow: hidden; border: 1px solid rgba(128,128,128,.25); }
+    .theme .pv i { position: absolute; left: 10px; right: 10px; height: 8px; border-radius: 4px; }
+    .theme .pv i:nth-child(1) { top: 12px; width: 40%; }
+    .theme .pv i:nth-child(2) { top: 28px; }
+    .theme .pv i:nth-child(3) { top: 44px; width: 60%; }
+    .theme b { display: block; margin-top: 8px; font-size: 13px; }
+    .theme span { font-size: 11.5px; color: var(--muted); }
+    .pv.dark { background: radial-gradient(120px 60px at 80% 0, rgba(255,255,255,.12), transparent), #0a0a0b; } .pv.dark i { background: #f5f5f7; opacity: .85; } .pv.dark i:nth-child(2), .pv.dark i:nth-child(3) { background: #2a2a2e; opacity: 1; }
+    .pv.light { background: #f2f2f4; } .pv.light i { background: #1d1d1f; } .pv.light i:nth-child(2), .pv.light i:nth-child(3) { background: #ffffff; box-shadow: 0 0 0 1px rgba(0,0,0,.08); }
+    .pv.auto { background: linear-gradient(105deg, #0a0a0b 50%, #f2f2f4 50%); } .pv.auto i { background: #8e8e93; }
+    .pv.night { background: radial-gradient(120px 70px at 85% 0, #2b2370, transparent), linear-gradient(#0d1230, #060918); } .pv.night i { background: #e0e7ff; opacity: .9; } .pv.night i:nth-child(2), .pv.night i:nth-child(3) { background: rgba(199,210,254,.18); }
+    @media (max-width: 620px) { .themes { grid-template-columns: repeat(2, 1fr); } .ids { grid-template-columns: repeat(3, 1fr); } }
+  </style>
+</head>
+<body>
+<main>
+  <div class="brandbar">
+    <img class="logo-dark-bg" src="../../icons/icon-white48.png" alt=""><img class="logo-light-bg" src="../../icons/icon48.png" alt="">
+    <div>
+      <h1>Codextent Settings</h1>
+      <div class="muted small">Theme, where your programs run, and how outputs are compared.</div>
+    </div>
+  </div>
+
+  <div class="notice info hidden" id="welcome" style="margin-top:16px">
+    Welcome! Codextent works out of the box with the free public Judge0 server. Click <b>Test connection</b> to check it,
+    then open a C, C++, Java, Python or MySQL example on a supported learning site and click the <b>&lt;&#9889;&gt;</b> button under the code.
+  </div>
+
+  <section class="card" aria-labelledby="appearanceTitle">
+    <h2 id="appearanceTitle">Appearance</h2>
+    <p class="sub">Used by My Learning Hub, the popup, Settings, and the bar under code examples. Changes apply instantly.</p>
+    <div class="themes" role="group" aria-label="Theme">
+      <button class="theme" type="button" data-theme-choice="dark"><div class="pv dark"><i></i><i></i><i></i></div><b>Dark</b><span>Black &amp; white (default)</span></button>
+      <button class="theme" type="button" data-theme-choice="light"><div class="pv light"><i></i><i></i><i></i></div><b>Light</b><span>White &amp; black</span></button>
+      <button class="theme" type="button" data-theme-choice="auto"><div class="pv auto"><i></i><i></i><i></i></div><b>Auto</b><span>Follows your system</span></button>
+      <button class="theme" type="button" data-theme-choice="night"><div class="pv night"><i></i><i></i><i></i></div><b>Night sky</b><span>Deep blue with stars</span></button>
+    </div>
+  </section>
+
+  <form class="card" id="form">
+    <h2>Code runner (Judge0)</h2>
+
+    <label for="preset">Server</label>
+    <select id="preset">
+      <option value="public">Judge0 CE public server — free, no key (ce.judge0.com)</option>
+      <option value="rapidapi">Judge0 CE on RapidAPI — needs your own API key</option>
+      <option value="custom">Custom / self-hosted Judge0</option>
+    </select>
+
+    <label for="endpoint">Server URL</label>
+    <input type="url" id="endpoint" required placeholder="https://ce.judge0.com">
+
+    <label for="authMode">Authentication</label>
+    <select id="authMode">
+      <option value="none">None</option>
+      <option value="rapidapi">RapidAPI key (X-RapidAPI-Key header)</option>
+      <option value="x-auth-token">Judge0 auth token (X-Auth-Token header)</option>
+    </select>
+
+    <div id="keyWrap">
+      <label for="apiKey">API key</label>
+      <input type="password" id="apiKey" autocomplete="off" spellcheck="false">
+      <label class="check small"><input type="checkbox" id="showKey"> Show key</label>
+      <p class="hint">Stored only in this browser (chrome.storage.local). It is used by the extension's background worker and is never shared with the websites you visit.</p>
+    </div>
+
+    <label>Language IDs</label>
+    <div class="ids">
+      <span><label for="id_c">C</label><input type="number" id="id_c" min="1" step="1"></span>
+      <span><label for="id_cpp">C++</label><input type="number" id="id_cpp" min="1" step="1"></span>
+      <span><label for="id_java">Java</label><input type="number" id="id_java" min="1" step="1"></span>
+      <span><label for="id_python">Python</label><input type="number" id="id_python" min="1" step="1"></span>
+      <span><label for="id_sql">MySQL</label><input type="number" id="id_sql" min="1" step="1"></span>
+    </div>
+    <p class="hint">Judge0 CE defaults: C 50, C++ 54, Java 62, Python 71, SQL 82. MySQL examples run on Judge0's SQL engine (SQLite) with MySQL-only options removed.</p>
+
+    <h2 style="margin-top:22px">Comparing outputs</h2>
+    <label class="check"><input type="checkbox" id="lenient">
+      <span>Ignore spaces/tabs at the end of each line<br>
+      <span class="hint">Programs like <code>cout &lt;&lt; i &lt;&lt; " ";</code> print an invisible trailing space. When on, that alone won't make your answer wrong (you'll still be told about it). Turn off for strict checking.</span></span>
+    </label>
+    <p class="hint">Always applied: Windows line endings count as normal newlines, and whitespace at the very end of the output is ignored. MySQL results are compared cell by cell: separate cells with |, tabs or spaces, with or without the header row.</p>
+
+    <div class="actions">
+      <button class="btn primary" type="submit" id="save">Save</button>
+      <button class="btn" type="button" id="test">Test connection</button>
+      <button class="btn" type="button" id="reset">Reset to defaults</button>
+    </div>
+    <div id="status" class="notice hidden" role="status"></div>
+  </form>
+
+  <p class="hint" style="margin-top:16px"><a href="../dashboard/dashboard.html">Open My Learning Hub</a></p>
+</main>
+<script src="../lib/judge0.js"></script>
+<script src="options.js"></script>
+</body>
+</html>

@@ -1,0 +1,40 @@
+<!doctype html>
+<html>
+<head><title>Python - For Loops</title></head>
+<body>
+<!--
+  Modelled on the live TutorialsPoint structure (checked Oct 2026):
+  runnable = div.code-wrapper > (div.code-header) + pre.demo-code.notranslate.language-xxx
+             > div.code-mirror.language-xxx + div.output-wrapper (embedded console, must be stripped)
+  syntax = pre.just-code ; output = pre.result
+  Expected buttons: 2 (py-1, cpp-1). Not: just-code, result.
+-->
+<div class="al-detail-card"><div class="al-detail-answer tutorial-content">
+  <pre class="just-code notranslate language-python" id="syntax"><div class="code-mirror language-python">for iterating_var in sequence:
+   statements(s)</div></pre>
+
+  <div class="code-wrapper" id="wrap-py-1">
+    <div class="code-header"><div class="logo-side"><span></span><span></span><span></span></div><div class="button-side"><div class="execute">Open Compiler</div></div></div>
+    <pre class="demo-code notranslate language-python" id="py-1"><div class="code-mirror language-python"><span class="token keyword">for</span> letter <span class="token keyword">in</span> <span class="token string">'Hi!'</span><span class="token punctuation">:</span>
+   <span class="token keyword">print</span> <span class="token punctuation">(</span><span class="token string">'Current Letter :'</span><span class="token punctuation">,</span> letter<span class="token punctuation">)</span></div><div class="output-wrapper"><div class="console-close"></div><div class="code-output"></div></div></pre>
+  </div>
+  <pre class="result notranslate" id="result-1">Current Letter : H
+Current Letter : i
+Current Letter : !</pre>
+
+  <div class="code-wrapper" id="wrap-cpp-1">
+    <div class="code-header"><div class="button-side"><div class="execute">Open Compiler</div></div></div>
+    <pre class="demo-code notranslate language-cpp" id="cpp-1"><div class="code-mirror language-cpp">#include &lt;iostream&gt;
+using namespace std;
+
+int main () {
+   // for loop execution
+   for( int a = 10; a &lt; 13; a = a + 1 ) {
+      cout &lt;&lt; "value of a: " &lt;&lt; a &lt;&lt; endl;
+   }
+   return 0;
+}</div><div class="output-wrapper"><div class="console-close"></div><div class="code-output">value of a: 10</div></div></pre>
+  </div>
+</div></div>
+</body>
+</html>
