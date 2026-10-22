@@ -31,10 +31,3 @@ Read an example → guess its output → run it → see exactly where you went w
 npm install
 npm test            # unit tests
 npm run test:e2e    # real Chromium end-to-end
-```
-
-## Tech
-Chrome MV3 · Vanilla JS · Shadow DOM · Judge0 CE · chrome.storage
-
----
-Made by **Sukumar M** · PSG iTech
