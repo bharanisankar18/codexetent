@@ -7,10 +7,7 @@ Read an example → guess its output → run it → see exactly where you went w
 - **Predict & check:** the `< ⚡ >` button under each example opens a slim bar; real execution via Judge0
 - **5 languages:** C · C++ · Java · Python · MySQL
 - **8 sites:** GeeksforGeeks · W3Schools · Programiz · TutorialsPoint · Javatpoint · Scaler · Studytonight · Sanfoundry
-- **Concept tags:** 88 concepts, each with what it is, the common trap, and an example
 - **Code Clipper → Revision Vault:** right-click any code → save it with notes, status, and spaced revision
-- **My Learning Hub:** accuracy, streaks, weak concepts, daily activity
-- **Themes:** Dark · Light · Auto · Night sky
 - **Private:** everything stays in your browser; no account needed
 
 ## Install
@@ -31,3 +28,14 @@ Read an example → guess its output → run it → see exactly where you went w
 npm install
 npm test            # unit tests
 npm run test:e2e    # real Chromium end-to-end
+```
+
+## Tech
+Chrome MV3 · Vanilla JS · Shadow DOM · Judge0 CE · chrome.storage
+
+---
+
+### Contributors
+**Bharani Sankar** · **Dinesh** · **Abhishek** · **Sanjay**
+
+*PSG Institute of Technology and Applied Research (PSG iTech)*
