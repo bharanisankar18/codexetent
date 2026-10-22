@@ -17,21 +17,18 @@
  *
  * The API key is read here and only here. Content scripts never receive it.
  */
-importScripts('lib/compare.js', 'lib/judge0.js', 'lib/stats.js', 'lib/storage.js', 'lib/concepts.js', 'lib/concepts-lang.js', 'lib/detector.js', 'lib/vault.js');
+importScripts('lib/compare.js', 'lib/judge0.js', 'lib/wandbox.js', 'lib/runner.js', 'lib/stats.js', 'lib/storage.js', 'lib/concepts.js', 'lib/concepts-lang.js', 'lib/detector.js', 'lib/vault.js');
 
 var OQ = self.OutputIQ;
-var running = false;
 
 async function checkPrediction(msg) {
   if (typeof msg.code !== 'string' || !msg.code.trim()) return { ok: false, error: 'No code to run.' };
   if (msg.code.length > 65000) return { ok: false, error: 'This program is too long to run (over 65,000 characters).' };
   var language = ['c', 'cpp', 'java', 'python', 'sql'].indexOf(msg.language) !== -1 ? msg.language : 'cpp';
-  if (running) return { ok: false, error: 'Another program is still running. Please wait a moment.' };
-
-  running = true;
   try {
     var settings = await OQ.storage.getSettings();
-    var run = await OQ.judge0.runCode(settings, language, msg.code, msg.stdin || '');
+    // fastest free runner per language + cache; a PRERUN started when the bar opened is reused here
+    var run = await OQ.runner.run(settings, language, msg.code, msg.stdin || '');
 
     var result, comparison = null;
     if (run.category === 'ok') {
@@ -44,7 +41,7 @@ async function checkPrediction(msg) {
 
     // Network/HTTP failures are not the learner's attempt — don't save them.
     var attempt = null;
-    if (run.category !== 'network_error' && run.category !== 'http_error') {
+    if (run.category !== 'network_error' && run.category !== 'http_error' && run.category !== 'runner_error') {
       attempt = await OQ.storage.addAttempt({
         questionId: OQ.stats.questionId(msg.code, msg.stdin),
         language: language,
@@ -67,9 +64,15 @@ async function checkPrediction(msg) {
     return { ok: true, attempt: attempt, run: run, comparison: comparison };
   } catch (e) {
     return { ok: false, error: 'Unexpected error: ' + (e && e.message ? e.message : String(e)) };
-  } finally {
-    running = false;
   }
+}
+
+/** Start running as soon as the learner opens the bar, so Check is (almost) instant. Result is cached, not saved. */
+async function prerun(msg) {
+  if (typeof msg.code !== 'string' || !msg.code.trim() || msg.code.length > 65000) return;
+  var language = ['c', 'cpp', 'java', 'python', 'sql'].indexOf(msg.language) !== -1 ? msg.language : 'cpp';
+  var settings = await OQ.storage.getSettings();
+  await OQ.runner.run(settings, language, msg.code, msg.stdin || '');
 }
 
 /** Options page "Test connection": runs a tiny program with the saved settings. Not saved as an attempt. */
@@ -86,11 +89,11 @@ async function testConnection() {
   var lines = [];
   var allOk = true;
   for (var lang of ['cpp', 'c', 'java', 'python', 'sql']) {
-    var run = await OQ.judge0.runCode(settings, lang, programs[lang], '');
+    var run = await OQ.runner.run(settings, lang, programs[lang], '', { noCache: true });
     var ok = run.category === 'ok' && /Codextent OK/.test(run.stdout);
     allOk = allOk && ok;
     lines.push((ok ? '✓ ' : '✗ ') + labels[lang] + (ok
-      ? ' (' + (run.time != null ? run.time + 's' : 'ok') + ')'
+      ? ' (' + OQ.runner.label(run).replace(/^Ran on /, '') + ')'
       : ': ' + (run.error || run.statusDescription || run.category)));
     // a network/auth failure will be the same for every language
     if (!ok && (run.category === 'network_error' || run.category === 'http_error')) break;
@@ -152,6 +155,10 @@ chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
     // Black icon for light toolbars (manifest default), white icon for dark toolbars.
     var w = msg.dark ? 'icons/icon-white' : 'icons/icon';
     chrome.action.setIcon({ path: { 16: w + '16.png', 32: w + '32.png', 48: w + '48.png', 128: w + '128.png' } }).catch(function () {});
+    return false;
+  }
+  if (msg.type === 'PRERUN') {
+    prerun(msg).catch(function () {});
     return false;
   }
   if (msg.type === 'SAVE_CLIP') {

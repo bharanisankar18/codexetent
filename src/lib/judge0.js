@@ -13,7 +13,9 @@
     authMode: 'none',            // 'none' | 'rapidapi' | 'x-auth-token'
     apiKey: '',
     languageIds: { c: 50, cpp: 54, java: 62, python: 71, sql: 82 },
-    lenientTrailingSpaces: true  // used by compare, kept here so settings live in one object
+    lenientTrailingSpaces: true, // used by compare, kept here so settings live in one object
+    runner: 'auto',              // 'auto' = fastest free runner per language (Wandbox + Judge0 backup) | 'judge0'
+    wandboxEndpoint: 'https://wandbox.org'
   };
 
   // JVM start-up is slow: give Java more time
@@ -207,7 +209,7 @@
   async function runCppInternal(settings, code, stdin, opts, language) {
     opts = opts || {};
     var fetchImpl = opts.fetch || (typeof fetch !== 'undefined' ? fetch.bind(root) : null);
-    var pollInterval = opts.pollIntervalMs != null ? opts.pollIntervalMs : 1000;
+    var pollInterval = opts.pollIntervalMs != null ? opts.pollIntervalMs : 300; // quick checks first, slower after ~3 s
     var maxWait = opts.maxWaitMs != null ? opts.maxWaitMs : 60000;
     var reqTimeout = opts.requestTimeoutMs || 20000;
     var retries = opts.retries != null ? opts.retries : 1;
@@ -240,9 +242,9 @@
     if (!token) return { category: 'http_error', error: 'The code runner did not return a result or a token.' };
     var started = Date.now();
     var pollUrl = trimSlash(s.endpoint) + '/submissions/' + encodeURIComponent(token) + '?base64_encoded=true';
-    var misses = 0;
+    var misses = 0, polls = 0;
     while (Date.now() - started < maxWait) {
-      await sleep(pollInterval);
+      await sleep(++polls > 10 && opts.pollIntervalMs == null ? 1000 : pollInterval);
       var pr, ptext;
       try {
         pr = await fetchWithTimeout(fetchImpl, pollUrl, { method: 'GET', headers: buildHeaders(s) }, reqTimeout);

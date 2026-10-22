@@ -66,12 +66,16 @@
     var run = response.run || {};
     var cmp = response.comparison;
 
-    if (run.category === 'network_error' || run.category === 'http_error') {
+    if (run.category === 'network_error' || run.category === 'http_error' || run.category === 'runner_error') {
       box.appendChild(verdict(doc, 'warn', 'Could not reach the code runner', run.error || ''));
       box.appendChild(el(doc, 'p', 'hint', 'This attempt was not saved. Your prediction is still in the box — try again.'));
       return box;
     }
 
+    if (run.runner) {
+      box.appendChild(el(doc, 'p', 'hint runon', run.runner === 'cache' ? 'Instant · saved result'
+        : 'Ran on ' + (run.runner === 'wandbox' ? 'Wandbox' : 'Judge0') + (run.ms != null ? ' · ' + (run.ms / 1000).toFixed(1) + ' s' : '')));
+    }
     if (run.note) box.appendChild(el(doc, 'p', 'hint', 'ℹ️ ' + run.note));
 
     if (run.category === 'compile_error') {

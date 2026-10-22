@@ -203,3 +203,14 @@ test('Javatpoint-style textarea block: language from the textarea class', () => 
   assert.equal(det.languageHint(doc.getElementById('cb')), 'java');
   assert.match(det.extractCode(doc.getElementById('cb')), /public class Main/);
 });
+
+test('strict wrapping (GfG): self-contained Java/C++ snippets run, fragments do not', () => {
+  const o = { allowWrap: 'strict', wrapLangs: ['java', 'cpp'] };
+  const sw = 'int day = 4;\nswitch (day) {\n  case 6:\n    System.out.println("Today is Saturday");\n    break;\n  default:\n    System.out.println("Looking forward to the Weekend");\n}';
+  const r = det.classifyCode(sw, 'java', o);
+  assert.equal(r.runnable && r.needsWrap, true);
+  assert.equal(det.classifyCode('int x = 5;\nint y = 3;\ncout << x + y;', 'cpp', o).runnable, true);
+  assert.equal(det.classifyCode('for (int i = 0; i < n; i++) {\n    std::cout << arr[i];\n}', 'cpp', o).runnable, false, 'n and arr unknown');
+  assert.equal(det.classifyCode('System.out.println(myObj.x);  // prints the field', 'java', o).runnable, false);
+  assert.equal(det.classifyCode('int x = 5;\nprintf("%d", x);', 'c', o).runnable, false, 'C is not wrapped on GfG yet');
+});

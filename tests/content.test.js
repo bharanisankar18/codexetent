@@ -27,6 +27,7 @@ function setup(page, reply) {
   const { window } = dom;
   const sent = [];
   const themes = [];
+  const preruns = [];
   const listeners = [];
   window.chrome = {
     runtime: {
@@ -35,6 +36,7 @@ function setup(page, reply) {
       lastError: undefined,
       sendMessage(msg, cb) {
         if (msg.type === 'THEME') { themes.push(msg); return; } // toolbar icon theme report, no reply
+        if (msg.type === 'PRERUN') { preruns.push(msg); return; } // early run when the bar opens, no reply
         sent.push(msg); setTimeout(() => cb(typeof reply === 'function' ? reply(msg) : reply), 0);
       }
     }
@@ -48,7 +50,7 @@ function setup(page, reply) {
     listeners.forEach((fn) => { if (fn(msg, { id: 'ext' }, resolve) === true) async = true; });
     if (!async) setTimeout(() => resolve(undefined), 0);
   });
-  return { window, doc: window.document, sent, themes, deliver };
+  return { window, doc: window.document, sent, themes, deliver, preruns };
 }
 
 const hosts = (doc) => Array.from(doc.querySelectorAll('[data-outputiq-host]'));

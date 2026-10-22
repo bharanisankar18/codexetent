@@ -59,6 +59,8 @@
       extraStrip: '.code-gutter, .line-numbers, .lineNumbers',
       ignoreSelector: '#comments, .comment, .sidebar, .rightBar, .ide, .gfg-ide, footer, nav, header',
       barInset: 130, // GfG shows ×, ▷ and copy buttons at the top right of code boxes
+      allowWrap: 'strict',        // run self-contained Java / C++ snippets (no main) by wrapping them
+      wrapLangs: ['java', 'cpp'],
       languageFor: function () { return null; },
       placementTarget: function (el) {
         var wrap = el.closest('.code-container, .code-block, .syntaxhighlighter');

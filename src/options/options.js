@@ -8,6 +8,7 @@
   // Hosts already granted in manifest.json host_permissions
   var BUILT_IN_ORIGINS = ['https://ce.judge0.com', 'https://judge0-ce.p.rapidapi.com'];
   var $ = function (id) { return document.getElementById(id); };
+  var current = null; // last loaded settings (keeps fields that have no input, e.g. wandboxEndpoint)
 
   if (new URLSearchParams(location.search).get('welcome')) $('welcome').classList.remove('hidden');
 
@@ -35,6 +36,8 @@
       $('id_' + l).value = globalThis.OutputIQ.judge0.languageIdFor(s, l);
     });
     $('lenient').checked = s.lenientTrailingSpaces !== false;
+    $('runner').value = s.runner === 'judge0' ? 'judge0' : 'auto';
+    current = s;
     $('preset').value = presetFor(s);
     updateKeyVisibility();
   }
@@ -51,7 +54,9 @@
         python: Number($('id_python').value) || DEFAULTS.languageIds.python,
         sql: Number($('id_sql').value) || DEFAULTS.languageIds.sql
       },
-      lenientTrailingSpaces: $('lenient').checked
+      lenientTrailingSpaces: $('lenient').checked,
+      runner: $('runner').value === 'judge0' ? 'judge0' : 'auto',
+      wandboxEndpoint: (current && current.wandboxEndpoint) || DEFAULTS.wandboxEndpoint
     };
   }
 

@@ -1,10 +1,10 @@
 {
   "name": "codextent",
-  "version": "0.7.2",
+  "version": "0.9.0",
   "private": true,
   "description": "Chrome extension: predict the output of C, C++, Java, Python and MySQL examples on learning sites, check it with Judge0, and learn the concepts.",
   "scripts": {
-    "test": "node --test tests/vault.test.js tests/compare.test.js tests/detector.test.js tests/judge0.test.js tests/stats.test.js tests/render.test.js tests/concepts.test.js tests/content.test.js tests/sites.test.js",
+    "test": "node --test tests/runner.test.js tests/vault.test.js tests/compare.test.js tests/detector.test.js tests/judge0.test.js tests/stats.test.js tests/render.test.js tests/concepts.test.js tests/content.test.js tests/sites.test.js",
     "test:programs": "node tests/run-programs.js --local && node tests/concept-examples.js",
     "test:judge0": "node tests/run-programs.js --judge0",
     "check": "node scripts/check-manifest.js",

@@ -53,7 +53,7 @@
                revision: 'Questions whose latest check was wrong — open one, compare, retry', concepts: 'What each concept means and the problems you did' };
 
   var state = { lang: '', site: '', view: 'home', recentLimit: 15, openConcept: null, showAllConcepts: false, open: {},
-                expand: { tc: false, sites: false }, vf: { q: '', status: '', site: '', concept: '', sort: 'newest' },
+                expand: { tc: false, sites: false }, vf: { q: '', status: '', site: '', concept: '', sort: 'new' },
                 focusClip: null, review: null, clipOpen: {} };
   var all = [];
   var clips = [];
@@ -157,7 +157,6 @@
     if (state.open[key]) card.classList.add('open');
 
     var head = h('div', 'att-head');
-    head.appendChild(emblem(lang));
     var mid = h('div');
     var topic = h('div', 'att-topic', topicOf(a));
     topic.title = topicOf(a);
@@ -838,7 +837,6 @@
     card.setAttribute('data-id', c.id);
 
     var head = h('div', 'clip-head');
-    head.appendChild(emblem(lang));
     var mid = h('div');
     var title = h('div', 'att-topic', clipTitle(c));
     title.title = clipTitle(c);
@@ -871,21 +869,8 @@
       card.appendChild(more);
     }
 
-    // concept + language (editable) and auto-detected tags
+    // concepts found in the clip (click = filter)
     var meta = h('div', 'clipmeta');
-    var ls = h('select', 'mini');
-    ls.setAttribute('aria-label', 'Language');
-    LANGS.concat([LANG.text]).forEach(function (l) { option(ls, l.id, l.name, lang); });
-    ls.addEventListener('change', function () { V.editClip(c.id, { language: ls.value, concept: '' }); });
-    meta.appendChild(ls);
-    if (C.has(lang)) {
-      var cs = h('select', 'mini');
-      cs.setAttribute('aria-label', 'Concept');
-      option(cs, '', 'Pick a concept…', c.concept);
-      C.list(lang).forEach(function (k) { option(cs, k.id, k.name, c.concept); });
-      cs.addEventListener('change', function () { V.editClip(c.id, { concept: cs.value }); });
-      meta.appendChild(cs);
-    }
     (c.concepts || []).filter(function (id) { return id !== c.concept && conceptName(lang, id); }).slice(0, 5).forEach(function (id) {
       var chip = h('button', 'chip', conceptName(lang, id));
       chip.type = 'button';
@@ -893,7 +878,7 @@
       chip.addEventListener('click', function () { state.vf.concept = id; renderVault(); });
       meta.appendChild(chip);
     });
-    card.appendChild(meta);
+    if (meta.childNodes.length) card.appendChild(meta);
     var cc = c.concept && C.has(lang) && C.get(lang, c.concept);
     if (cc) {
       var trap = h('p', 'cliptrap');
@@ -997,7 +982,6 @@
     var lang = c.language;
     var card = h('div', 'rv-card');
     var head = h('div', 'clip-head');
-    head.appendChild(emblem(lang, 'md'));
     var mid = h('div');
     mid.appendChild(h('div', 'rv-title', clipTitle(c)));
     mid.appendChild(h('div', 'att-sub', [c.topic, (SITE[c.site] && SITE[c.site].name) || c.site, LANG[lang].name].filter(Boolean).join(' • ')));

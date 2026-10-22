@@ -59,7 +59,7 @@
       var brLayout = adapter.brLayout ? adapter.brLayout(block) : false;
       var code = OQ.detector.extractCode(block, adapter.extraStrip, { brLayout: brLayout });
       var hint = adapter.languageFor(block, location) || OQ.detector.languageHint(block);
-      var info = OQ.detector.classifyCode(code, hint, { allowWrap: !!adapter.allowWrap });
+      var info = OQ.detector.classifyCode(code, hint, { allowWrap: adapter.allowWrap || false, wrapLangs: adapter.wrapLangs });
       if (!info.isCode || !info.runnable) return;
       var runCode = info.needsWrap ? OQ.detector.wrapSnippet(code, info.language) : code;
       info.source = code;
@@ -203,6 +203,10 @@
     var api = {
       host: host,
       open: function (focus) {
+        // start running now (while the learner types) so Check is near-instant; programs that read input wait for Check
+        if (!bar.classList.contains('open') && !info.readsInput) {
+          try { chrome.runtime.sendMessage({ type: 'PRERUN', language: info.language, code: code, stdin: '' }); } catch (e) { /* reloaded */ }
+        }
         bar.classList.add('open');
         logo.setAttribute('aria-expanded', 'true');
         updateNext();

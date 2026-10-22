@@ -61,9 +61,16 @@
   </section>
 
   <form class="card" id="form">
-    <h2>Code runner (Judge0)</h2>
+    <h2>Code runner</h2>
 
-    <label for="preset">Server</label>
+    <label for="runner">Speed</label>
+    <select id="runner">
+      <option value="auto">Auto — fastest free runner per language (Wandbox, Judge0 as backup) · recommended</option>
+      <option value="judge0">Judge0 only — the server below</option>
+    </select>
+    <p class="hint">Auto runs C, C++, Java, Python and MySQL on Wandbox (free, no key). If it is slow, Judge0 starts too and the first answer wins. Code starts running when you open the bar, and results are saved so a repeat is instant.</p>
+
+    <label for="preset">Judge0 server</label>
     <select id="preset">
       <option value="public">Judge0 CE public server — free, no key (ce.judge0.com)</option>
       <option value="rapidapi">Judge0 CE on RapidAPI — needs your own API key</option>

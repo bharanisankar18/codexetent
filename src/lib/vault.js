@@ -149,7 +149,7 @@
 
   /**
    * @param {Clip[]} list
-   * @param {{q?, language?, status?, site?, concept?, due?:boolean, sort?:'newest'|'oldest'|'difficult'}} f
+   * @param {{q?, language?, status?, site?, concept?, due?:boolean, sort?:'new'|'newest'|'oldest'|'difficult'}} f
    */
   function filterClips(list, f, now) {
     f = f || {};
@@ -169,6 +169,7 @@
     out.sort(function (a, b) {
       if (f.sort === 'oldest') return a.createdAt - b.createdAt;
       if (f.sort === 'difficult') return (rank[a.status] - rank[b.status]) || (b.createdAt - a.createdAt);
+      if (f.sort === 'new') return ((a.status === 'new' ? 0 : 1) - (b.status === 'new' ? 0 : 1)) || (b.createdAt - a.createdAt);
       return b.createdAt - a.createdAt;
     });
     return out;

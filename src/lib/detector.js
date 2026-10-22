@@ -214,12 +214,49 @@
     if (hasEntryPoint(code, lang)) {
       // python: must actually print or read something to be a meaningful prediction
       res.runnable = lang === 'python' ? producesOutput : true;
-    } else if (opts.allowWrap && OUTPUT_RE[lang].test(code) && !/\{\s*\/\/\s*code block/i.test(code)) {
+    } else if (opts.allowWrap && (!opts.wrapLangs || opts.wrapLangs.indexOf(lang) !== -1) && OUTPUT_RE[lang].test(code) &&
+               !/\{\s*\/\/\s*code block/i.test(code) && (opts.allowWrap !== 'strict' || snippetSelfContained(code))) {
       res.runnable = true;
       res.needsWrap = true;
     }
     if (!res.runnable) reasons.push(lang === 'python' ? 'prints nothing' : lang === 'sql' ? 'uses tables it does not create' : 'no main()');
     return res;
+  }
+
+  var KEYWORDS = /^(?:int|long|short|double|float|char|bool|boolean|byte|string|String|auto|var|const|final|unsigned|signed|void|true|false|null|nullptr|new|this|return|if|else|for|while|do|switch|case|default|break|continue|sizeof|length|size|std|cout|cin|endl|System|out|Math|i|j|k)$/;
+  /**
+   * Strict check for sites that mix runnable snippets with fragments (GfG): the snippet must declare a
+   * variable with a value, and every name used in for/if/while/switch conditions must be declared in it.
+   * "int day = 4; switch (day) {…}" passes; "for (int i = 0; i < n; i++) cout << arr[i];" does not (n, arr unknown).
+   */
+  function snippetSelfContained(code) {
+    var c = String(code).replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '').replace(/"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/g, '""');
+    if (/\.\.\./.test(c)) return false;
+    var declared = {};
+    var declRe = /\b(?:int|long|short|double|float|char|bool|boolean|byte|string|String|auto|var|unsigned)\s*(?:\[\s*\])?\s+([A-Za-z_]\w*)/g, m;
+    while ((m = declRe.exec(c))) declared[m[1]] = true;
+    var listRe = /\b(?:int|long|double|float|char|bool|boolean|String|string)\s+[^;()]*;/g;
+    while ((m = listRe.exec(c))) m[0].replace(/,\s*([A-Za-z_]\w*)/g, function (_, n) { declared[n] = true; });
+    if (!Object.keys(declared).length && !/(?:cout\s*<<|System\.out\.print\w*\s*\(|printf\s*\()\s*""/.test(c)) return false;
+    var condRe = /\b(?:for|if|while|switch)\s*\(([^)]*)\)/g;
+    while ((m = condRe.exec(c))) {
+      var names = m[1].replace(/\b(?:int|long|double|float|char|auto|var|String|string)\s+\w+/g, '').match(/[A-Za-z_]\w*/g) || [];
+      for (var i = 0; i < names.length; i++) {
+        if (KEYWORDS.test(names[i]) || declared[names[i]]) continue;
+        if (/\.\s*$/.test(m[1].slice(0, m[1].indexOf(names[i])))) continue; // member access like s.length
+        return false;
+      }
+    }
+    // array/variable reads in output statements must be declared too (cout << arr[i])
+    var outRe = /(?:cout\s*<<|System\.out\.print\w*\s*\(|printf\s*\()([^;]*)/g;
+    while ((m = outRe.exec(c))) {
+      var used = m[1].replace(/""/g, '').match(/(?:^|[^.\w])([A-Za-z_]\w*)\s*(?=\[|[^\w(]|$)/g) || [];
+      for (var k = 0; k < used.length; k++) {
+        var nm = used[k].replace(/^[^A-Za-z_]+/, '').trim();
+        if (nm && !KEYWORDS.test(nm) && !declared[nm]) return false;
+      }
+    }
+    return true;
   }
 
   /** Wrap a statement-only snippet (W3Schools style) into a full program. */
@@ -343,7 +380,8 @@
     extractCode: extractCode,
     languageHint: languageHint,
     findCodeBlocks: findCodeBlocks,
-    sqlSelfContained: sqlSelfContained
+    sqlSelfContained: sqlSelfContained,
+    snippetSelfContained: snippetSelfContained
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.OutputIQ = root.OutputIQ || {};

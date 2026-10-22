@@ -27,8 +27,29 @@ const URLS = {
   tp: 'https://www.tutorialspoint.com/python/python_for_loops.htm',
   gfg: 'https://www.geeksforgeeks.org/cpp/for-loop-in-cpp/',
   gfgErrors: 'https://www.geeksforgeeks.org/cpp/errors-demo/',
-  javatpoint: 'https://www.javatpoint.com/cpp-for-loop'
+  javatpoint: 'https://www.javatpoint.com/cpp-for-loop',
+  gfgSnip: 'https://www.geeksforgeeks.org/java/switch-statement-in-java/'
 };
+
+const snippetsPage = `<!doctype html><html><head><title>Switch Statement in Java - GeeksforGeeks</title></head><body><article>
+<pre class="language-java"><code>int day = 4;
+switch (day) {
+  case 6:
+    System.out.println("Today is Saturday");
+    break;
+  case 7:
+    System.out.println("Today is Sunday");
+    break;
+  default:
+    System.out.println("Looking forward to the Weekend");
+}</code></pre>
+<pre class="language-cpp"><code>int x = 5;
+int y = 3;
+cout &lt;&lt; x + y;</code></pre>
+<pre class="language-cpp"><code>for (int i = 0; i &lt; n; i++) {
+    cout &lt;&lt; arr[i];
+}</code></pre>
+</article></body></html>`;
 
 const errorsPage = `<!doctype html><html><head><title>Errors and Java demo - GeeksforGeeks</title></head><body><article>
 <pre id="compile">#include &lt;iostream&gt;
@@ -100,6 +121,8 @@ async function step(name, fn) {
     if (!sw) sw = await ctx.waitForEvent('serviceworker', { timeout: 10000 });
     const extId = new URL(sw.url()).host;
     console.log('Extension loaded: ' + extId);
+    // point the Wandbox runner at the local emulation (same server, /wandbox)
+    await sw.evaluate(async (ep) => chrome.storage.local.set({ settings: Object.assign({}, (await chrome.storage.local.get('settings')).settings, { wandboxEndpoint: ep }) }), endpoint + '/wandbox');
 
     const pages = {
       'www.programiz.com': fx('programiz.html'),
@@ -133,6 +156,14 @@ async function step(name, fn) {
       await b.locator('.check:not([disabled])').waitFor({ timeout: 30000 });
       return { symbol: await b.locator('.verdict').textContent(), msg: await b.locator('.msg .text').textContent() };
     }
+
+    /** Time from clicking Check to the verdict, measured inside the page (Playwright's own waits excluded). */
+    const checkMs = (p, i) => p.evaluate((idx) => new Promise((res) => {
+      const sh = document.querySelectorAll('[data-outputiq-host]')[idx].shadowRoot;
+      const v = sh.querySelector('.verdict'), t = performance.now();
+      sh.querySelector('.check').click();
+      const iv = setInterval(() => { if (!v.classList.contains('busy') && v.textContent) { clearInterval(iv); res(performance.now() - t); } }, 5);
+    }), i);
 
     await step('options: saves custom server, "Test connection" runs C++, C, Java and Python', async () => {
       const p = await ctx.newPage();
@@ -193,7 +224,7 @@ async function step(name, fn) {
     await step('W3Schools: full program and wrapped snippet both run', async () => {
       assert.equal((await predict(w3, 0, 'Hello World!')).symbol, '✓');
       assert.equal((await predict(w3, 1, '0\n1\n2\n3\n4')).symbol, '✓');
-      const src = server.submissions[server.submissions.length - 1].source;
+      const src = server.wandbox[server.wandbox.length - 1].code;
       assert.match(src, /int main\(\) \{\n    for \(int i = 0;/);
     });
 
@@ -233,12 +264,12 @@ async function step(name, fn) {
       assert.equal(t.symbol, '⏱'); assert.match(t.msg, /Time limit/);
     });
 
-    await step('GfG Java: class GFG renamed to Main and runs', async () => {
+    await step('GfG Java: class GFG runs on Wandbox (public dropped, name kept)', async () => {
       const r = await predict(ge, 3, 'sq = 49');
       assert.equal(r.symbol, '✓');
-      const sub = server.submissions.find((s) => s.language_id === 62 && /sq\(7\)/.test(s.source));
-      assert.match(sub.source, /public class Main \{/);
-      assert.match(sub.source, /Main\.sq\(7\)/);
+      const sub = server.wandbox.find((s) => s.compiler.startsWith('openjdk') && /sq\(7\)/.test(s.code));
+      assert.match(sub.code, /\nclass GFG \{/);
+      assert.match(sub.code, /GFG\.sq\(7\)/);
     });
 
     await step('Python runtime error (ZeroDivisionError) -> ✗ with traceback in details', async () => {
@@ -257,11 +288,46 @@ async function step(name, fn) {
       await gfg.emulateMedia({ colorScheme: 'light' });
     });
 
-    await step('polling fallback works when the server ignores wait=true', async () => {
+    await step('fast runner: Wandbox down -> Judge0 backup (token + polling); repeat is instant from cache', async () => {
+      await sw.evaluate(() => self.OutputIQ.runner.clearCache());
+      server.wandboxDown = true;
       server.forcePolling = true;
+      const before = server.requests.filter((r) => r.method === 'GET').length;
       assert.equal((await predict(gfg, 1, 'Square: 16')).symbol, '✓');
-      assert.ok(server.requests.some((r) => r.method === 'GET' && r.path.startsWith('/submissions/')));
+      assert.ok(server.requests.filter((r) => r.method === 'GET' && r.path.startsWith('/submissions/')).length > before, 'Judge0 polled');
+      await bar(gfg, 1).locator('.msg .link').click();
+      assert.match(await bar(gfg, 1).locator('.details').textContent(), /Ran on Judge0/);
+      server.wandboxDown = false;
       server.forcePolling = false;
+      const n = server.wandbox.length + server.submissions.length;
+      assert.equal((await predict(gfg, 1, 'Square: 16')).symbol, '✓');
+      assert.ok(await checkMs(gfg, 1) < 500, 'cached result is instant');
+      assert.equal(server.wandbox.length + server.submissions.length, n, 'no new run');
+      assert.match(await bar(gfg, 1).locator('.details').textContent(), /Instant · saved result/);
+    });
+
+    await step('fast runner: opening the bar starts the run early (prerun), so Check reuses it', async () => {
+      await sw.evaluate(() => self.OutputIQ.runner.clearCache());
+      const b = bar(gfg, 0);
+      if (await b.locator('.bar.open').count()) await b.locator('.logo').click(); // close it first
+      const n = server.wandbox.length;
+      await b.locator('.logo').click();
+      await gfg.waitForFunction(() => true);
+      for (let i = 0; i < 50 && server.wandbox.length === n; i++) await gfg.waitForTimeout(50);
+      assert.equal(server.wandbox.length, n + 1, 'run started when the bar opened, before Check');
+      await gfg.waitForTimeout(800);
+      await bar(gfg, 0).locator('textarea.answer').fill('anything');
+      assert.ok(await checkMs(gfg, 0) < 500, 'Check is near-instant');
+      assert.equal(server.wandbox.length, n + 1, 'Check did not run it again');
+    });
+
+    await step('fast runner: Wandbox slow -> Judge0 joins after 4 s and wins', async () => {
+      await sw.evaluate(() => self.OutputIQ.runner.clearCache());
+      server.wandboxDelayMs = 9000;
+      const r = await predict(ge, 4, 'start');
+      assert.equal(r.symbol, '✗');
+      assert.match(await bar(ge, 4).locator('.details').textContent(), /Ran on Judge0/);
+      server.wandboxDelayMs = 0;
     });
 
     const jt = await open(URLS.javatpoint);
@@ -317,9 +383,10 @@ async function step(name, fn) {
       const p = await ctx.newPage();
       await p.setViewportSize({ width: 340, height: 520 });
       await p.goto(`chrome-extension://${extId}/src/popup/popup.html`);
-      await p.waitForSelector('#recent li');
-      assert.match(await p.textContent('#accuracy'), /%$/);
-      assert.ok((await p.locator('#langs span').count()) >= 4);
+      await p.waitForFunction(() => /%$/.test(document.getElementById('accuracy').textContent));
+      assert.equal(await p.locator('#recent, #langs, #vaultBadge, #revBadge').count(), 0, 'popup is minimal');
+      assert.equal(await p.textContent('#clipMsg'), '', 'no hint line until you clip');
+      assert.equal((await p.textContent('#openDashboard')).trim(), 'My Learning Hub');
       await p.screenshot({ path: path.join(SHOTS, '08-popup.png') });
       await p.close();
     });
@@ -490,11 +557,11 @@ async function step(name, fn) {
       // status
       await card.locator('.stseg .st-difficult').click();
       await d.waitForFunction(() => document.querySelector('#clipList .clip.st-difficult'));
-      // concept picker
-      await d.locator('#clipList .clip select.mini').nth(1).selectOption('formatting');
-      await d.waitForTimeout(200);
+      assert.equal(await d.locator('#clipList .clip select').count(), 0, 'no language / concept pickers on cards');
+      assert.equal(await d.locator('#clipList .clip .mark').count(), 0, 'no language icon on cards');
+      await d.waitForTimeout(300);
       let v = await sw.evaluate(async () => (await chrome.storage.local.get('vault')).vault.find((c) => /printf/.test(c.text)));
-      assert.deepEqual([v.status, v.concept, /newline/.test(v.notes)], ['difficult', 'formatting', true]);
+      assert.deepEqual([v.status, /newline/.test(v.notes)], ['difficult', true]);
       await d.fill('#vQ', '');
       await d.waitForFunction(() => document.querySelectorAll('#clipList .clip').length === 5);
 
@@ -523,7 +590,7 @@ async function step(name, fn) {
       await d.waitForSelector('#clipList .clip');
       await d.locator('#startReview').click();
       await d.locator('#vReview .rv-card').waitFor();
-      assert.match(await d.textContent('#vReview .rv-title'), /Output formatting|printf/i);
+      assert.match(await d.textContent('#vReview pre'), /printf/, 'difficult clip comes first');
       assert.match(await d.textContent('#vReview'), /1 \/ 5/);
       await d.locator('#vReview .btn', { hasText: 'Got it' }).click();
       for (let i = 0; i < 4; i++) {
@@ -549,6 +616,17 @@ async function step(name, fn) {
       await d.waitForFunction(() => /clips/.test(document.getElementById('vsText').textContent)).catch(() => {});
       assert.match(await d.textContent('#vsText'), /5 clips · 0 due/);
       await d.close();
+    });
+
+    await step('GfG: Java and C++ snippets without main() are wrapped and run; fragments get no button', async () => {
+      await ctx.route(URLS.gfgSnip, (route) => route.fulfill({ status: 200, contentType: 'text/html', body: snippetsPage }));
+      const p = await open(URLS.gfgSnip);
+      assert.equal(await p.locator('[data-outputiq-host]').count(), 2, 'switch (Java) + sum (C++); fragment skipped');
+      let r = await predict(p, 0, 'Looking forward to the Weekend');
+      assert.equal(r.symbol, '✓');
+      r = await predict(p, 1, '8');
+      assert.equal(r.symbol, '✓');
+      await p.close();
     });
 
     await step('no JavaScript errors on any page', async () => {

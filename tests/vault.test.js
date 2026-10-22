@@ -80,6 +80,7 @@ test('filterClips: search (text, notes, concept names), language, status, site, 
   assert.equal(V.filterClips(L, { concept: 'pointers', site: 'w3schools' }).length, 1);
   assert.equal(V.filterClips(L)[0].text, 'int *q = nullptr;', 'newest first');
   assert.equal(V.filterClips(L, { sort: 'oldest' })[0].text, 'int *p = &x;');
+  assert.equal(V.filterClips(L, { sort: 'new' })[0].status, 'new', 'New first');
   assert.deepEqual(V.filterClips(L, { sort: 'difficult' }).map((c) => c.status), ['difficult', 'difficult', 'learning', 'new', 'mastered']);
 });
 
