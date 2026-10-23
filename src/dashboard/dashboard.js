@@ -58,6 +58,8 @@
   var all = [];
   var clips = [];
   var practiceLog = [];
+  var lcMarks = [];
+  var LC = OQ.leetcode;
 
   // ---------------------------------------------------------------- helpers
   function h(tag, cls, text) {
@@ -111,7 +113,8 @@
     var parts = (location.hash || '#home').slice(1).split('/');
     var v = parts[0];
     state.view = VIEWS[v] ? v : 'home';
-    state.focusClip = v === 'vault' && parts[1] ? decodeURIComponent(parts[1]) : null;
+    state.focusClip = v === 'vault' && parts[1] && parts[1] !== 'lc' ? decodeURIComponent(parts[1]) : null;
+    if (v === 'vault' && parts[1] === 'lc') state.vf.kind = 'leetcode';
     if (state.focusClip) {
       var fc = clips.filter(function (c) { return c.id === state.focusClip; })[0];
       state.vf = { q: '', status: '', site: '', concept: '', sort: state.vf.sort, kind: fc ? kindTab(fc) : 'code' };
@@ -818,6 +821,91 @@
     });
     return del;
   }
+  /** LeetCode: problems marked "Solve later" on leetcode.com with your idea note (chrome.storage.sync). */
+  state.lc = { status: 'todo', difficulty: '' };
+  function leetcodeView(out) {
+    var top = h('div', 'lc-top');
+    var seg = h('div', 'seg');
+    [['todo', 'To solve'], ['done', 'Solved']].forEach(function (x) {
+      var n = lcMarks.filter(function (m) { return m.st === x[0]; }).length;
+      var b = h('button', null, x[1] + ' · ' + n); b.type = 'button';
+      b.setAttribute('aria-pressed', String(state.lc.status === x[0]));
+      b.addEventListener('click', function () { state.lc.status = x[0]; renderVault(); });
+      seg.appendChild(b);
+    });
+    top.appendChild(seg);
+    var ds = h('select', 'mini lc-diff'); ds.setAttribute('aria-label', 'Difficulty');
+    [['', 'All difficulties'], ['easy', 'Easy'], ['medium', 'Medium'], ['hard', 'Hard']].forEach(function (x) { option(ds, x[0], x[1], state.lc.difficulty); });
+    ds.addEventListener('change', function () { state.lc.difficulty = ds.value; renderVault(); });
+    top.appendChild(ds);
+    var meter = h('span', 'lc-sync muted', 'Syncs to your other PCs (same Google account in Chrome)');
+    LC.usage().then(function (u) { meter.textContent = 'Sync space used: ' + u.pct + '% · syncs to every Chrome signed in to the same Google account'; if (u.pct >= 80) meter.classList.add('warn'); }).catch(function () {});
+    top.appendChild(meter);
+    out.appendChild(top);
+
+    var list = LC.filterMarks(lcMarks, { status: state.lc.status, difficulty: state.lc.difficulty, q: state.vf.q });
+    if (!list.length) {
+      var e = h('div', 'card vempty');
+      e.appendChild(h('h2', null, state.lc.status === 'todo' ? 'No problems to solve later' : 'Nothing solved yet'));
+      var ol = h('ol');
+      ['Open an Array problem on leetcode.com (for example Two Sum).', 'Next to Easy · Topics · Companies · Hint, click “Solve later”.', 'Write your idea and save. It appears here and on your other PCs signed in to the same Chrome account.']
+        .forEach(function (t) { ol.appendChild(h('li', null, t)); });
+      e.appendChild(ol);
+      out.appendChild(e);
+      return;
+    }
+    var grid = h('div', 'lc-list');
+    list.forEach(function (m) {
+      var card = h('article', 'lc-card');
+      card.setAttribute('data-slug', m.s);
+      var head = h('div', 'lc-head');
+      var a = h('a', 'lc-title', (m.id ? m.id + '. ' : '') + m.t);
+      a.href = 'https://leetcode.com/problems/' + encodeURIComponent(m.s) + '/'; a.target = '_blank'; a.rel = 'noopener noreferrer';
+      head.appendChild(a);
+      if (m.d) head.appendChild(h('span', 'lc-d ' + m.d, m.d[0].toUpperCase() + m.d.slice(1)));
+      card.appendChild(head);
+      var tags = h('div', 'lc-tags');
+      (m.g || []).forEach(function (t) { tags.appendChild(h('span', 'lc-tag', t)); });
+      tags.appendChild(h('span', 'muted lc-when', (m.st === 'done' ? 'solved ' + OQ.ui.timeAgo(m.da || m.ua) : 'saved ' + OQ.ui.timeAgo(m.ca || m.ua))));
+      card.appendChild(tags);
+      if (m.st === 'todo') {
+        var ta = h('textarea', 'notearea'); ta.value = m.n || ''; ta.rows = 2; ta.maxLength = LC.MAX_NOTE;
+        ta.placeholder = 'Your idea for this problem…'; ta.setAttribute('aria-label', 'Idea note');
+        var saved = h('span', 'saved'), timer = null;
+        ta.addEventListener('input', function () { autoGrow(ta); saved.textContent = 'Saving…'; clearTimeout(timer);
+          timer = setTimeout(function () { LC.saveMark({ slug: m.s, id: m.id, title: m.t, difficulty: m.d, tags: m.g, note: ta.value }).then(function () { saved.textContent = 'Saved ✓'; }); }, 500); });
+        setTimeout(function () { autoGrow(ta); }, 0);
+        var lb = h('div', 'lbl', 'My idea'); lb.appendChild(saved);
+        card.appendChild(lb); card.appendChild(ta);
+      } else if (m.n) {
+        card.appendChild(h('p', 'lc-note', m.n));
+      }
+      var acts = h('div', 'clipacts');
+      var open = h('a', 'btn small primary', 'Open on LeetCode ↗'); open.href = a.href; open.target = '_blank'; open.rel = 'noopener noreferrer';
+      acts.appendChild(open);
+      var tog = h('button', 'btn small', m.st === 'todo' ? 'Mark solved' : 'Move back to To solve'); tog.type = 'button';
+      tog.addEventListener('click', function () { (m.st === 'todo' ? LC.markDone(m.s) : LC.reopen(m.s)).then(loadLeetcode); });
+      acts.appendChild(tog);
+      var del = h('button', 'btn small ghostdanger', 'Remove'); del.type = 'button';
+      del.addEventListener('click', function () {
+        if (!del.dataset.armed) { del.dataset.armed = '1'; del.textContent = 'Sure? Remove'; setTimeout(function () { delete del.dataset.armed; del.textContent = 'Remove'; }, 3000); return; }
+        LC.removeMark(m.s).then(loadLeetcode);
+      });
+      acts.appendChild(del);
+      card.appendChild(acts);
+      grid.appendChild(card);
+    });
+    out.appendChild(grid);
+  }
+  function loadLeetcode() {
+    return LC.allMarks().then(function (list) {
+      lcMarks = list;
+      var ae = document.activeElement;
+      if (state.view === 'vault' && state.vf.kind === 'leetcode' && ae && ae.tagName === 'TEXTAREA') return;
+      if (state.view === 'vault') renderVault();
+    }, function () { lcMarks = []; });
+  }
+
   function renderKinds() {
     var box = $('vKinds'); box.textContent = '';
     var counts = {
@@ -825,7 +913,8 @@
       notes: clips.filter(function (c) { return c.kind === 'note' || c.notes; }).length,
       points: clips.filter(function (c) { return c.kind === 'text'; }).length
     };
-    [['code', 'Code'], ['notes', 'My notes'], ['points', 'Key points']].forEach(function (k) {
+    counts.leetcode = lcMarks.filter(function (m) { return m.st === 'todo'; }).length;
+    [['code', 'Code'], ['notes', 'My notes'], ['points', 'Key points'], ['leetcode', 'LeetCode']].forEach(function (k) {
       var b = h('button', 'ltab');
       b.type = 'button';
       b.setAttribute('role', 'tab');
@@ -847,7 +936,7 @@
       if ($('vQ') !== document.activeElement) $('vQ').value = state.vf.q;
       var o = $('clipList'); o.textContent = ''; o.classList.remove('hidden');
       o.classList.toggle('stack', true);
-      if (kind === 'notes') notesView(o); else pointsView(o);
+      if (kind === 'notes') notesView(o); else if (kind === 'leetcode') leetcodeView(o); else pointsView(o);
       return;
     }
     $('clipList').classList.remove('stack');
@@ -1428,11 +1517,13 @@
     refresh();
   });
   chrome.storage.onChanged.addListener(function (changes, area) {
+    if (area === 'sync' || (area === 'local' && changes[LC.DONE_KEY])) loadLeetcode();
     if (area === 'local' && (changes.attempts || changes.vault || changes.quizLog)) refresh();
   });
   window.addEventListener('hashchange', route);
 
   load();
+  loadLeetcode();
   chrome.storage.local.get(['attempts', 'vault', 'quizLog']).then(function (data) {
     all = data.attempts || [];
     clips = data.vault || [];

@@ -673,7 +673,7 @@ async function step(name, fn) {
       await d.goto(`chrome-extension://${extId}/src/dashboard/dashboard.html#vault`);
       await d.locator('#langTabs .ltab[data-l="all"]').click();
       await d.waitForSelector('#vKinds .ltab');
-      assert.deepEqual(await d.locator('#vKinds .ltab').allTextContents(), ['Code1', 'My notes3', 'Key points1']);
+      assert.deepEqual(await d.locator('#vKinds .ltab').allTextContents(), ['Code1', 'My notes3', 'Key points1', 'LeetCode0']);
       assert.match(await d.locator('#clipList .clip textarea.notearea').first().inputValue(), /prints 1 2 3/, 'note shown under the code');
       await d.locator('#vKinds .ltab[data-kind="points"]').click();
       assert.equal(await d.locator('ul.points li').count(), 1);
@@ -751,6 +751,61 @@ async function step(name, fn) {
       await d.locator('.pq-opt').first().waitFor({ timeout: 60000 }).catch(async (e) => { await d.screenshot({ path: path.join(SHOTS, 'practice-fail.png'), fullPage: true }); console.log(await d.locator('#practiceBody').textContent()); throw e; });
       assert.match(await d.locator('.pq-from').textContent(), /Loops.*Difficult clip/);
       await d.locator('#langTabs .ltab[data-l="all"]').click().catch(() => {});
+      await d.close();
+    });
+
+    await step('LeetCode: Array problem → "Solve later" chip in the chip row, note saved to Chrome sync; non-Array → nothing; dashboard LeetCode tab', async () => {
+      const page = (title) => `<!doctype html><html class="dark"><head><title>${title} - LeetCode</title></head><body style="background:#1a1a1a;color:#eee;font-family:sans-serif">
+        <div style="padding:20px"><div class="flex items-start gap-2"><div class="text-title-large" style="font-size:24px;font-weight:600"><a href="#">${title}</a></div></div>
+        <div class="flex gap-1" style="display:flex;gap:4px;margin-top:12px"><div class="text-difficulty-easy" style="padding:2px 8px;border-radius:99px;background:rgba(255,255,255,.1);color:#46c6c2;font-size:12px">Easy</div>
+        <div style="padding:2px 8px;border-radius:99px;background:rgba(255,255,255,.1);font-size:12px">Topics</div><div style="padding:2px 8px;border-radius:99px;background:rgba(255,255,255,.1);font-size:12px">Companies</div>
+        <div style="padding:2px 8px;border-radius:99px;background:rgba(255,255,255,.1);font-size:12px">Hint</div></div><p>Given an array of integers nums…</p></div></body></html>`;
+      const Q = { 'two-sum': ['1', 'Two Sum', 'Easy', ['Array', 'Hash Table']], 'valid-parentheses': ['20', 'Valid Parentheses', 'Easy', ['String', 'Stack']] };
+      await ctx.route(/https:\/\/leetcode\.com\/.*/, (route) => {
+        const u = new URL(route.request().url());
+        if (u.pathname.startsWith('/graphql')) {
+          const slug = JSON.parse(route.request().postData()).variables.titleSlug, q = Q[slug];
+          return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ data: { question: { questionFrontendId: q[0], title: q[1], difficulty: q[2], topicTags: q[3].map((t) => ({ name: t, slug: t.toLowerCase() })) } } }) });
+        }
+        const slug = (u.pathname.match(/^\/problems\/([^/]+)/) || [])[1];
+        route.fulfill({ status: 200, contentType: 'text/html', body: page(slug ? Q[slug][0] + '. ' + Q[slug][1] : 'LeetCode') });
+      });
+      const lc = await ctx.newPage();
+      lc.on('pageerror', (e) => pageErrors.push('leetcode: ' + e));
+      await lc.goto('https://leetcode.com/problems/two-sum/description/');
+      const chip = lc.locator('[data-codextent-lc] .chip');
+      await chip.waitFor({ timeout: 10000 });
+      assert.equal(await lc.locator('[data-codextent-lc]').evaluate((h) => h.parentElement.className), 'flex gap-1');
+      await chip.click();
+      await lc.locator('[data-codextent-lc] textarea').fill('hash map value -> index, one pass');
+      await lc.locator('[data-codextent-lc] button.save').click();
+      await lc.locator('[data-codextent-lc] .chip.saved').waitFor();
+      await lc.locator('[data-codextent-lc]').screenshot({ path: path.join(SHOTS, 'leetcode-chip.png') });
+      await lc.waitForTimeout(900);
+      await chip.click();
+      await lc.locator('[data-codextent-lc] .pop.show').waitFor();
+      await lc.screenshot({ path: path.join(SHOTS, 'leetcode-pop.png'), clip: { x: 0, y: 0, width: 720, height: 460 } });
+      const synced = await sw.evaluate(async () => (await chrome.storage.sync.get('lc:two-sum'))['lc:two-sum']);
+      assert.deepEqual([synced.t, synced.d, synced.n, synced.st], ['Two Sum', 'easy', 'hash map value -> index, one pass', 'todo']);
+      // single-page navigation to a non-Array problem: chip goes away
+      await lc.evaluate(() => history.pushState({}, '', '/problems/valid-parentheses/'));
+      await lc.waitForFunction(() => !document.querySelector('[data-codextent-lc]'), null, { timeout: 5000 });
+      await lc.close();
+
+      const d = await ctx.newPage();
+      d.on('pageerror', (e) => pageErrors.push('lc-dashboard: ' + e));
+      await d.setViewportSize({ width: 1280, height: 900 });
+      await d.goto(`chrome-extension://${extId}/src/dashboard/dashboard.html#vault/lc`);
+      await d.locator('.lc-card').waitFor();
+      assert.match(await d.locator('#vKinds .ltab[data-kind="leetcode"]').textContent(), /LeetCode\s*1/);
+      assert.match(await d.locator('.lc-card').textContent(), /1\. Two Sum[\s\S]*Easy[\s\S]*Array/);
+      assert.equal(await d.locator('.lc-card textarea').inputValue(), 'hash map value -> index, one pass');
+      await d.screenshot({ path: path.join(SHOTS, 'vault-leetcode.png'), fullPage: true });
+      await d.locator('.lc-card .btn', { hasText: 'Mark solved' }).click();
+      await d.locator('.seg button', { hasText: 'Solved' }).click();
+      await d.locator('.lc-card').waitFor();
+      const where = await sw.evaluate(async () => [!!(await chrome.storage.sync.get('lc:two-sum'))['lc:two-sum'], !!((await chrome.storage.local.get('lcDone')).lcDone || {})['two-sum']]);
+      assert.deepEqual(where, [false, true], 'solved problems move out of sync storage');
       await d.close();
     });
 

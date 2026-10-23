@@ -42,6 +42,11 @@
     .cliphint:empty { display: none; }
     .clipbox { margin-bottom: 10px; }
     .cliphint.ok { color: var(--text, var(--ink)); font-weight: 600; }
+    .lcrow { display: flex; align-items: center; gap: 8px; width: 100%; padding: 9px 12px; margin-bottom: 10px; border: 1px solid var(--line); border-radius: 12px;
+             background: var(--card); background-image: var(--card-grad); color: var(--text, var(--ink)); font: inherit; font-size: 13px; cursor: pointer; text-align: left; transition: box-shadow .2s; }
+    .lcrow:hover { box-shadow: var(--glow); }
+    .lcrow .lcdot { width: 8px; height: 8px; border-radius: 50%; background: #ffa116; }
+    .lcrow #lcCount { color: var(--muted); } .lcrow .go { margin-left: auto; color: var(--muted); font-size: 16px; }
     .spoil { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); background-image: var(--card-grad); cursor: pointer; margin-bottom: 10px; transition: box-shadow .2s; }
     .spoil:hover { box-shadow: var(--glow); }
     .spoil span { flex: 1; display: grid; } .spoil b { font-size: 13px; } .spoil small { font-size: 11px; color: var(--muted); }
@@ -83,6 +88,9 @@
       <div><b id="wrong">0</b><span>&#10007; wrong</span></div>
       <div><b id="streak">0</b><span>streak</span></div>
     </div>
+    <button class="lcrow" id="lcRow" type="button" title="Problems you marked on LeetCode to solve later">
+      <span class="lcdot" aria-hidden="true"></span><b>LeetCode</b><span id="lcCount">0 to solve</span><span class="go" aria-hidden="true">›</span>
+    </button>
     <label class="spoil" title="Hides the site's own answers (GfG Output boxes, W3Schools // Outputs comments) until you check. Click a blurred box to peek.">
       <span><b>Blur outputs</b><small>Hide GfG &amp; W3Schools answers</small></span>
       <input type="checkbox" id="spoiler" role="switch"><i aria-hidden="true"></i>
@@ -93,6 +101,7 @@
     </div>
   </div>
   <script src="../lib/stats.js"></script>
+  <script src="../lib/leetcode.js"></script>
   <script src="../ui/common.js"></script>
   <script src="popup.js"></script>
 </body>

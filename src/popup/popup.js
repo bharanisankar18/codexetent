@@ -36,6 +36,13 @@
     if (r && r.ok) { $('noteText').value = ''; $('notePanel').classList.add('hidden'); $('noteBtn').setAttribute('aria-expanded', 'false'); }
   });
 
+  // LeetCode "Solve later" count (synced across PCs)
+  try {
+    var lc = (await OQ.leetcode.allMarks()).filter(function (m) { return m.st === 'todo'; }).length;
+    $('lcCount').textContent = lc + ' to solve';
+  } catch (e) { /* sync unavailable */ }
+  $('lcRow').addEventListener('click', function () { chrome.tabs.create({ url: chrome.runtime.getURL(HUB + '#vault/lc') }); });
+
   // Spoiler guard switch
   $('spoiler').checked = !!(((await chrome.storage.local.get('spoiler')).spoiler || {}).on);
   $('spoiler').addEventListener('change', function () { chrome.storage.local.set({ spoiler: { on: this.checked } }); });
