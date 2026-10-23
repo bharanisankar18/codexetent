@@ -848,7 +848,7 @@
       var e = h('div', 'card vempty');
       e.appendChild(h('h2', null, state.lc.status === 'todo' ? 'No problems to solve later' : 'Nothing solved yet'));
       var ol = h('ol');
-      ['Open an Array problem on leetcode.com (for example Two Sum).', 'Next to Easy · Topics · Companies · Hint, click “Solve later”.', 'Write your idea and save. It appears here and on your other PCs signed in to the same Chrome account.']
+      ['Open a String or Hash Table problem on leetcode.com (for example Two Sum or Valid Anagram).', 'Next to Easy · Topics · Companies · Hint, click “Solve later”.', 'Write your idea and save. It appears here and on your other PCs signed in to the same Chrome account.']
         .forEach(function (t) { ol.appendChild(h('li', null, t)); });
       e.appendChild(ol);
       out.appendChild(e);

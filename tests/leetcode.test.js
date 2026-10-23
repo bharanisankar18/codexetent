@@ -23,8 +23,9 @@ test('slug from URL, Array-only filter, mark fits Chrome sync', () => {
   assert.equal(L.slugFromPath('/problems/two-sum/description/'), 'two-sum');
   assert.equal(L.slugFromPath('/problems/3sum'), '3sum');
   assert.equal(L.slugFromPath('/problemset/'), null);
-  assert.equal(L.allowed(['Array', 'Hash Table']), true);
-  assert.equal(L.allowed(['String', 'Dynamic Programming']), false);
+  assert.equal(L.allowed(['Array', 'Hash Table']), true, 'Hash Table');
+  assert.equal(L.allowed(['String', 'Dynamic Programming']), true, 'String');
+  assert.equal(L.allowed(['Array', 'Two Pointers']), false, 'Array alone is not on yet');
   const m = L.makeMark({ slug: 'two-sum', id: '1', title: 'Two Sum', difficulty: 'Easy', tags: ['Array', 'Hash Table'], note: 'x'.repeat(5000) }, null, 1000);
   assert.deepEqual([m.s, m.id, m.t, m.d, m.st, m.n.length, m.ca], ['two-sum', '1', 'Two Sum', 'easy', 'todo', L.MAX_NOTE, 1000]);
   assert.ok(JSON.stringify(m).length < 8000, 'under the 8 KB per-item sync limit');
@@ -76,7 +77,7 @@ function setupLC(url, tags, opts = {}) {
 }
 const wait = (ms = 20) => new Promise((r) => setTimeout(r, ms));
 
-test('LeetCode page: Array problem gets a "Solve later" chip in the LeetCode chip row; note saves to Chrome sync', async () => {
+test('LeetCode page: Hash Table problem gets a "Solve later" chip in the LeetCode chip row; note saves to Chrome sync', async () => {
   const { doc, st } = setupLC('https://leetcode.com/problems/two-sum/description/', ['Array', 'Hash Table']);
   await wait();
   const host = doc.querySelector('[data-codextent-lc]');
@@ -96,14 +97,14 @@ test('LeetCode page: Array problem gets a "Solve later" chip in the LeetCode chi
   assert.match(sh.querySelector('.chip').textContent, /note/);
 });
 
-test('LeetCode page: non-Array problems get no chip (Array only for now)', async () => {
-  const { doc } = setupLC('https://leetcode.com/problems/valid-parentheses/', ['String', 'Stack']);
+test('LeetCode page: problems without String / Hash Table get no chip', async () => {
+  const { doc } = setupLC('https://leetcode.com/problems/rotate-array/', ['Array', 'Math', 'Two Pointers']);
   await wait();
   assert.equal(doc.querySelector('[data-codextent-lc]'), null);
 });
 
 test('LeetCode page: chip row missing → floating chip at the bottom right', async () => {
-  const { doc } = setupLC('https://leetcode.com/problems/two-sum/', ['Array'], { html: '<html><head><title>x</title></head><body><main></main></body></html>' });
+  const { doc } = setupLC('https://leetcode.com/problems/two-sum/', ['String'], { html: '<html><head><title>x</title></head><body><main></main></body></html>' });
   await wait();
   const host = doc.querySelector('[data-codextent-lc]');
   assert.ok(host && host.hasAttribute('data-lc-float'));

@@ -37,9 +37,28 @@
   ];
   function pathLanguage(loc) { return urlLanguage(loc.pathname, PATH_LANG); }
 
+  /**
+   * Spoiler guard helper: the box right after an "Output" / "Result" label (p, strong, h3…), plus site selectors.
+   * Never returns a code block we attach to or anything inside our own UI.
+   */
+  function labelledOutputs(doc, selectors) {
+    var list = selectors ? Array.prototype.slice.call(doc.querySelectorAll(selectors)) : [];
+    Array.prototype.forEach.call(doc.querySelectorAll('p, strong, b, h2, h3, h4, h5, span, div, dt'), function (lab) {
+      if (lab.children.length > 1 || !/^\s*(?:sample\s+|expected\s+|program\s+)?(?:output|result)s?\s*:?\s*$/i.test(lab.textContent)) return;
+      var box = lab.nextElementSibling;
+      if (!box && lab.parentElement && /^(P|DIV|DT)$/.test(lab.parentElement.tagName) && lab.parentElement.children.length === 1) box = lab.parentElement.nextElementSibling;
+      if (box && /^(PRE|DIV|SAMP|CODE|TABLE|DD)$/.test(box.tagName)) list.push(box);
+    });
+    return list.filter(function (el, i) {
+      return list.indexOf(el) === i && !el.closest('[data-outputiq-host]') && !el.querySelector('[data-outputiq-host]') && el.textContent.trim().length < 4000;
+    });
+  }
+
   function generic(id, name, hostRe, extra) {
     return Object.assign({
       id: id,
+      selectionTools: true,
+      spoilers: function (doc) { return labelledOutputs(doc); },
       name: name,
       test: function (loc) { return hostRe.test(loc.hostname); },
       extraSelector: '',
@@ -82,6 +101,13 @@
     {
       id: 'programiz',
       name: 'Programiz',
+      selectionTools: true,
+      // answers: <p><strong>Output</strong></p><pre><samp>…</samp></pre>
+      spoilers: function (doc) {
+        return labelledOutputs(doc).concat(Array.prototype.filter.call(doc.querySelectorAll('pre'), function (p) {
+          return p.children.length === 1 && p.firstElementChild.tagName === 'SAMP';
+        })).filter(function (el, i, a) { return a.indexOf(el) === i; });
+      },
       test: function (loc) { return /(^|\.)programiz\.com$/i.test(loc.hostname); },
       extraSelector: '',
       extraStrip: '.copy-code-button',
@@ -122,6 +148,8 @@
     {
       id: 'tutorialspoint',
       name: 'TutorialsPoint',
+      selectionTools: true,
+      spoilers: function (doc) { return labelledOutputs(doc, 'pre.result'); },
       test: function (loc) { return /(^|\.)tutorialspoint\.com$/i.test(loc.hostname); },
       extraSelector: '',
       extraStrip: '.output-wrapper, .code-output, .console-close',
@@ -136,11 +164,15 @@
     generic('javatpoint', 'Javatpoint', /(^|\.)javatpoint\.com$/i, {
       // legacy SyntaxHighlighter blocks: <div class="codeblock"><textarea name="code" class="cpp">…</textarea></div>
       // (output is shown in div.codeblock3, which is not selected)
-      extraSelector: 'div.codeblock'
+      extraSelector: 'div.codeblock',
+      spoilers: function (doc) { return labelledOutputs(doc, 'div.codeblock3'); }
     }),
     generic('scaler', 'Scaler Topics', /(^|\.)scaler\.com$/i),
     generic('studytonight', 'Studytonight', /(^|\.)studytonight\.com$/i),
-    generic('sanfoundry', 'Sanfoundry', /(^|\.)sanfoundry\.com$/i)
+    generic('sanfoundry', 'Sanfoundry', /(^|\.)sanfoundry\.com$/i, {
+      // MCQ answers sit in "View Answer" boxes
+      spoilers: function (doc) { return labelledOutputs(doc, '.collapseomatic_content, [id^="target-id"]'); }
+    })
   );
 
   var GENERIC = {
@@ -159,7 +191,7 @@
     return GENERIC;
   }
 
-  var api = { adapterFor: adapterFor, ADAPTERS: ADAPTERS, GENERIC: GENERIC, pathLanguage: pathLanguage };
+  var api = { labelledOutputs: labelledOutputs, adapterFor: adapterFor, ADAPTERS: ADAPTERS, GENERIC: GENERIC, pathLanguage: pathLanguage };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.OutputIQ = root.OutputIQ || {};
   root.OutputIQ.adapters = api;

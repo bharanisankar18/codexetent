@@ -75,3 +75,20 @@ test('in-page bar follows the theme setting (default dark; light/night from Sett
   await tick();
   assert.equal(hosts(auto.doc)[0].getAttribute('data-theme'), 'light', 'auto follows the system (light in this test)');
 });
+
+// ---------------- Blur outputs + select-text tools on all 8 sites ----------------
+const A = require('../src/content/adapters.js');
+function docFor(file, url) { return new JSDOM(fs.readFileSync(path.join(__dirname, 'fixtures', file), 'utf8'), { url }).window.document; }
+test('every site adapter has select-text tools and an answer finder for Blur outputs', () => {
+  A.ADAPTERS.forEach((a) => { assert.equal(a.selectionTools, true, a.id); assert.equal(typeof a.spoilers, 'function', a.id); });
+});
+test('Blur outputs finds each site\'s answers (and never the code)', () => {
+  const ids = (file, url) => { const d = docFor(file, url); return A.adapterFor(new URL(url)).spoilers(d).map((e) => e.id || e.className); };
+  assert.deepEqual(ids('programiz.html', 'https://www.programiz.com/cpp-programming/for-loop').sort(), ['output-1', 'output-py']);
+  assert.ok(ids('tutorialspoint.html', 'https://www.tutorialspoint.com/python/python_for_loops.htm').includes('result-1'));
+  assert.ok(ids('javatpoint.html', 'https://www.javatpoint.com/cpp-for-loop').includes('out1'));
+  const gen = new JSDOM('<p>Output:</p><pre id="o">42</pre><p>Code</p><pre id="c">int x;</pre><div class="collapseomatic_content" id="ans">Answer: b</div>', { url: 'https://www.sanfoundry.com/x/' }).window.document;
+  assert.deepEqual(A.adapterFor(new URL('https://www.sanfoundry.com/x/')).spoilers(gen).map((e) => e.id).sort(), ['ans', 'o']);
+  const sc = new JSDOM('<h3>Output</h3><pre id="o2">Hello</pre>', { url: 'https://www.scaler.com/topics/java/x/' }).window.document;
+  assert.deepEqual(A.adapterFor(new URL('https://www.scaler.com/topics/java/x/')).spoilers(sc).map((e) => e.id), ['o2']);
+});

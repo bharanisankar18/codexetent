@@ -754,13 +754,13 @@ async function step(name, fn) {
       await d.close();
     });
 
-    await step('LeetCode: Array problem → "Solve later" chip in the chip row, note saved to Chrome sync; non-Array → nothing; dashboard LeetCode tab', async () => {
+    await step('LeetCode: String / Hash Table problem → "Solve later" chip in the chip row, note saved to Chrome sync; Array-only problem → nothing; dashboard LeetCode tab', async () => {
       const page = (title) => `<!doctype html><html class="dark"><head><title>${title} - LeetCode</title></head><body style="background:#1a1a1a;color:#eee;font-family:sans-serif">
         <div style="padding:20px"><div class="flex items-start gap-2"><div class="text-title-large" style="font-size:24px;font-weight:600"><a href="#">${title}</a></div></div>
         <div class="flex gap-1" style="display:flex;gap:4px;margin-top:12px"><div class="text-difficulty-easy" style="padding:2px 8px;border-radius:99px;background:rgba(255,255,255,.1);color:#46c6c2;font-size:12px">Easy</div>
         <div style="padding:2px 8px;border-radius:99px;background:rgba(255,255,255,.1);font-size:12px">Topics</div><div style="padding:2px 8px;border-radius:99px;background:rgba(255,255,255,.1);font-size:12px">Companies</div>
         <div style="padding:2px 8px;border-radius:99px;background:rgba(255,255,255,.1);font-size:12px">Hint</div></div><p>Given an array of integers nums…</p></div></body></html>`;
-      const Q = { 'two-sum': ['1', 'Two Sum', 'Easy', ['Array', 'Hash Table']], 'valid-parentheses': ['20', 'Valid Parentheses', 'Easy', ['String', 'Stack']] };
+      const Q = { 'two-sum': ['1', 'Two Sum', 'Easy', ['Array', 'Hash Table']], 'rotate-array': ['189', 'Rotate Array', 'Medium', ['Array', 'Math', 'Two Pointers']] };
       await ctx.route(/https:\/\/leetcode\.com\/.*/, (route) => {
         const u = new URL(route.request().url());
         if (u.pathname.startsWith('/graphql')) {
@@ -788,7 +788,7 @@ async function step(name, fn) {
       const synced = await sw.evaluate(async () => (await chrome.storage.sync.get('lc:two-sum'))['lc:two-sum']);
       assert.deepEqual([synced.t, synced.d, synced.n, synced.st], ['Two Sum', 'easy', 'hash map value -> index, one pass', 'todo']);
       // single-page navigation to a non-Array problem: chip goes away
-      await lc.evaluate(() => history.pushState({}, '', '/problems/valid-parentheses/'));
+      await lc.evaluate(() => history.pushState({}, '', '/problems/rotate-array/'));
       await lc.waitForFunction(() => !document.querySelector('[data-codextent-lc]'), null, { timeout: 5000 });
       await lc.close();
 

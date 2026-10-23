@@ -1,6 +1,6 @@
 /*
  * Codextent on LeetCode — "Solve later" + your idea note, synced between your PCs (chrome.storage.sync).
- * First version: only problems tagged Array (OutputIQ.leetcode.ONLY_TAGS).
+ * For now: only problems tagged String or Hash Table (OutputIQ.leetcode.ONLY_TAGS).
  *
  * Where it shows: a chip in LeetCode's own chip row under the title (Easy · Topics · Companies · Hint · [Solve later]),
  * styled like LeetCode's chips. Clicking it opens a small note card. Fallback: a floating chip at the bottom right.
@@ -191,7 +191,7 @@ button.ghost.done { color: var(--green); border-color: rgba(44,187,93,.4); }
       if (slug !== state.slug) return;
       info.allowed = L.allowed(info.tags);
       state.info = info;
-      if (!info.allowed) return;            // Array problems only for now
+      if (!info.allowed) return;            // String / Hash Table problems only for now
       state.mark = await L.getMark(slug);
       place(); renderChip();
     } finally { state.loading = false; }
