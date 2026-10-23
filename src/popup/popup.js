@@ -12,6 +12,34 @@
   $('wrong').textContent = s.incorrect;
   $('streak').textContent = s.streak;
 
+  // ---- Note for this page (topic note, saved alone under the page's heading) ----
+  async function activeTab() { return (await chrome.tabs.query({ active: true, currentWindow: true }))[0]; }
+  $('noteBtn').addEventListener('click', async function () {
+    var open = $('notePanel').classList.toggle('hidden') === false;
+    this.setAttribute('aria-expanded', String(open));
+    if (!open) return;
+    var info = null;
+    try { info = await chrome.tabs.sendMessage((await activeTab()).id, { type: 'PAGE_INFO' }, { frameId: 0 }); } catch (e) { info = null; }
+    $('noteFor').textContent = info ? 'Note for: ' + info.title.replace(/\s*[-|–]\s*(GeeksforGeeks|W3Schools)\s*$/i, '') : 'Open a GfG or W3Schools page (refresh it once) to add a note.';
+    $('noteSave').disabled = !info;
+    $('noteText').focus();
+  });
+  $('noteCancel').addEventListener('click', function () { $('notePanel').classList.add('hidden'); $('noteBtn').setAttribute('aria-expanded', 'false'); });
+  $('noteText').addEventListener('keydown', function (e) { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); $('noteSave').click(); } });
+  $('noteSave').addEventListener('click', async function () {
+    var text = $('noteText').value.trim(), msg = $('clipMsg');
+    if (!text) { $('noteText').focus(); return; }
+    var r = null;
+    try { r = await chrome.tabs.sendMessage((await activeTab()).id, { type: 'NOTE_REQUEST', notes: text }, { frameId: 0 }); } catch (e) { r = null; }
+    msg.className = 'cliphint' + (r && r.ok ? ' ok' : '');
+    msg.textContent = r && r.ok ? '✓ Note saved to My Revision Vault' : (r && r.error) || 'Open a GfG or W3Schools page (refresh it once), then try again.';
+    if (r && r.ok) { $('noteText').value = ''; $('notePanel').classList.add('hidden'); $('noteBtn').setAttribute('aria-expanded', 'false'); }
+  });
+
+  // Spoiler guard switch
+  $('spoiler').checked = !!(((await chrome.storage.local.get('spoiler')).spoiler || {}).on);
+  $('spoiler').addEventListener('change', function () { chrome.storage.local.set({ spoiler: { on: this.checked } }); });
+
   $('openDashboard').addEventListener('click', function () { chrome.tabs.create({ url: chrome.runtime.getURL(HUB) }); });
   $('openVault').addEventListener('click', function () { chrome.tabs.create({ url: chrome.runtime.getURL(HUB + '#vault') }); });
   $('openOptions').addEventListener('click', function () { chrome.runtime.openOptionsPage(); });

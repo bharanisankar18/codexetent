@@ -59,8 +59,19 @@
       extraStrip: '.code-gutter, .line-numbers, .lineNumbers',
       ignoreSelector: '#comments, .comment, .sidebar, .rightBar, .ide, .gfg-ide, footer, nav, header',
       barInset: 130, // GfG shows ×, ▷ and copy buttons at the top right of code boxes
+      selectionTools: true, // select page text → [Key point] [Note]
+      // Spoiler guard: GfG shows the answer in div.code-output ("Output" + pre), older articles use <p>Output</p><pre>
+      spoilers: function (doc) {
+        var list = Array.prototype.slice.call(doc.querySelectorAll('div.code-output'));
+        Array.prototype.forEach.call(doc.querySelectorAll('pre'), function (pre) {
+          var prev = pre.previousElementSibling;
+          if (pre.closest('div.code-output, [data-outputiq-host]')) return;
+          if (prev && /^(P|STRONG|B|H3|H4|DIV)$/.test(prev.tagName) && /^\s*Output\s*:?\s*$/i.test(prev.textContent)) list.push(pre);
+        });
+        return list;
+      },
       allowWrap: 'strict',        // run self-contained Java / C++ snippets (no main) by wrapping them
-      wrapLangs: ['java', 'cpp'],
+      wrapLangs: ['java', 'cpp', 'c'],
       languageFor: function () { return null; },
       placementTarget: function (el) {
         var wrap = el.closest('.code-container, .code-block, .syntaxhighlighter');
@@ -92,6 +103,13 @@
       extraStrip: '',
       brLayout: function (el) { return el.tagName !== 'PRE'; },
       allowWrap: true,
+      selectionTools: true,
+      // Spoiler guard: W3Schools writes the answer as a comment in the code: // Outputs "Thursday" (day 4)
+      spoilers: function (doc) {
+        return Array.prototype.filter.call(doc.querySelectorAll('.w3-example .token.comment, .w3-code .commentcolor, .w3-example .commentcolor'), function (c) {
+          return /^\s*(?:\/\/|\/\*|#|--)\s*(?:Outputs?|Prints?|Displays?|Returns?|Result)\b/i.test(c.textContent);
+        });
+      },
       ignoreSelector: 'header, footer, nav, #sidenav, .sidesection, #topnav, .w3-sidebar, #exercisecontainer, .exercisewindow',
       languageFor: function (el, loc) {
         return urlLanguage(loc.pathname, [[/^\/cpp\//i, 'cpp'], [/^\/c\//i, 'c'], [/^\/java\//i, 'java'], [/^\/python\//i, 'python'], [/^\/(?:sql|mysql)\//i, 'sql']]);

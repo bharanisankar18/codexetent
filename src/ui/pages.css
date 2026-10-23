@@ -75,8 +75,8 @@ textarea { font: 13px/1.5 ui-monospace, "SF Mono", Menlo, Consolas, monospace; m
 
 /* monochrome status symbols: shape carries the meaning */
 .sym { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 5px; font-size: 10px; font-weight: 900; flex: none; font-style: normal; }
-.sym.ok { background: var(--strong); color: var(--on-strong); }
-.sym.bad { background: transparent; color: var(--text); box-shadow: inset 0 0 0 1.5px var(--text); }
+.sym.ok { background: #34d399; color: #04140d; }
+.sym.bad { color: #f87171; box-shadow: inset 0 0 0 1.5px #f87171; }
 .sym.warn { background: transparent; color: var(--muted); box-shadow: none; outline: 1.5px dashed var(--grey); outline-offset: -1.5px; }
 
 /* theme-aware logo */

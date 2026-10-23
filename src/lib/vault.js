@@ -3,7 +3,7 @@
  *
  * Storage key "vault" -> Clip[] (newest last, capped at MAX_CLIPS)
  * Clip = {
- *   id, text, kind:'code'|'text', language:'c'|'cpp'|'java'|'python'|'sql'|'text',
+ *   id, text, kind:'code'|'text'|'note'  (code clip · key point = selected text · note = your own topic note), language:'c'|'cpp'|'java'|'python'|'sql'|'text',
  *   concepts:[conceptId], concept: conceptId|'' (the main one, editable), topic,
  *   site, url, pageTitle, notes, status:'new'|'learning'|'difficult'|'mastered',
  *   createdAt, updatedAt, reviewedAt, reviewCount, nextReviewAt
@@ -70,12 +70,13 @@
   /** Build a new clip from {text, language, kind, concepts, site, url, pageTitle}. */
   function makeClip(input, now) {
     now = now || Date.now();
-    var language = LANGS.indexOf(input.language) !== -1 ? input.language : 'text';
+    var note = input.kind === 'note';
+    var language = !note && LANGS.indexOf(input.language) !== -1 ? input.language : 'text';
     var concepts = Array.isArray(input.concepts) ? input.concepts.slice(0, 12).map(String) : [];
     return {
       id: newId(now),
-      text: str(cleanText(input.text), MAX_TEXT),
-      kind: language === 'text' ? 'text' : 'code',
+      text: str(note ? String(input.text || '').replace(/\r\n?/g, '\n').trim() : cleanText(input.text), MAX_TEXT),
+      kind: note ? 'note' : language === 'text' ? 'text' : 'code',
       language: language,
       concepts: concepts,
       concept: concepts[0] || '',
@@ -83,7 +84,7 @@
       site: str(input.site, 60),
       url: /^https?:\/\//i.test(input.url || '') ? str(input.url, 2000) : '',
       pageTitle: str(input.pageTitle, 300),
-      notes: '',
+      notes: str(input.notes || '', MAX_NOTES).trim(),
       status: 'new',
       createdAt: now,
       updatedAt: now,
@@ -99,8 +100,16 @@
   function addClip(list, clip) {
     list = Array.isArray(list) ? list.slice() : [];
     if (!clip.text || !clip.text.trim()) return { list: list, clip: null, duplicate: false, error: 'Nothing selected.' };
-    var dup = list.filter(function (c) { return sameClip(c, clip); })[0];
-    if (dup) return { list: list, clip: dup, duplicate: true };
+    var dup = clip.kind === 'note' ? null : list.filter(function (c) { return sameClip(c, clip); })[0];
+    if (dup) {
+      // saving the same thing again with a note: keep one clip, add the note under the old ones
+      if (clip.notes && dup.notes.indexOf(clip.notes) === -1) {
+        var merged = Object.assign({}, dup, { notes: str(dup.notes ? dup.notes + '\n' + clip.notes : clip.notes, MAX_NOTES), updatedAt: clip.createdAt });
+        list = list.map(function (c) { return c.id === dup.id ? merged : c; });
+        return { list: list, clip: merged, duplicate: true, updated: true };
+      }
+      return { list: list, clip: dup, duplicate: true };
+    }
     list.push(clip);
     if (list.length > MAX_CLIPS) list = list.slice(list.length - MAX_CLIPS);
     return { list: list, clip: clip, duplicate: false };
@@ -123,6 +132,7 @@
       if ('concept' in patch) u.concept = str(patch.concept, 60);
       if ('concepts' in patch && Array.isArray(patch.concepts)) u.concepts = patch.concepts.slice(0, 12).map(String);
       if ('topic' in patch) u.topic = str(patch.topic, 300);
+      if ('text' in patch && u.kind === 'note') u.text = str(String(patch.text), MAX_TEXT); // only your own notes can be rewritten
       u.updatedAt = now;
       out = u;
       return u;
@@ -145,7 +155,7 @@
 
   function removeClip(list, id) { return (list || []).filter(function (c) { return c.id !== id; }); }
 
-  function isDue(c, now) { return c.status !== 'mastered' && (c.nextReviewAt == null || c.nextReviewAt <= (now || Date.now())); }
+  function isDue(c, now) { return c.kind !== 'note' && c.status !== 'mastered' && (c.nextReviewAt == null || c.nextReviewAt <= (now || Date.now())); }
 
   /**
    * @param {Clip[]} list
@@ -185,9 +195,11 @@
 
   function vaultStats(list, now) {
     list = list || [];
-    var s = { total: list.length, due: 0, byStatus: { 'new': 0, learning: 0, difficult: 0, mastered: 0 }, byLanguage: {}, difficultConcepts: [] };
+    var s = { total: list.length, code: 0, keyPoints: 0, notes: 0, due: 0, byStatus: { 'new': 0, learning: 0, difficult: 0, mastered: 0 }, byLanguage: {}, difficultConcepts: [] };
     var dc = {};
     list.forEach(function (c) {
+      if (c.kind === 'note') { s.notes++; return; } // notes are not revised, so not counted by status
+      if (c.kind === 'text') s.keyPoints++; else s.code++;
       s.byStatus[c.status] = (s.byStatus[c.status] || 0) + 1;
       s.byLanguage[c.language] = (s.byLanguage[c.language] || 0) + 1;
       if (isDue(c, now)) s.due++;
@@ -207,7 +219,7 @@
   async function setClips(list) { var o = {}; o[KEY] = list; await area().set(o); }
   async function saveClip(input) {
     var r = addClip(await getClips(), makeClip(input));
-    if (r.clip && !r.duplicate) await setClips(r.list);
+    if (r.clip && (!r.duplicate || r.updated)) await setClips(r.list);
     return r;
   }
   async function editClip(id, patch) { var r = updateClip(await getClips(), id, patch); await setClips(r.list); return r.clip; }

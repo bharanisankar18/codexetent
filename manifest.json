@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Codextent – Predict Code Output",
   "short_name": "Codextent",
-  "version": "0.9.0",
+  "version": "0.12.0",
   "description": "Predict the output of C, C++, Java, Python and MySQL examples on 8 learning sites, then check it and learn the concepts.",
   "icons": {
     "16": "icons/icon16.png",

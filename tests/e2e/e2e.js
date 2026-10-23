@@ -544,8 +544,8 @@ async function step(name, fn) {
       assert.equal(await d.locator('.side nav a').first().getAttribute('data-view'), 'vault', 'vault is first in the sidebar');
       assert.equal(await d.textContent('#viewTitle'), 'My Revision Vault');
       await d.locator('#langTabs .ltab[data-l="all"]').click();
-      assert.equal(await d.locator('#clipList .clip').count(), 5);
-      assert.equal(await d.textContent('#navVault'), '5', 'due count in sidebar');
+      assert.equal(await d.locator('#clipList .clip').count(), 4, 'Code section: 4 code clips (the text clip is a key point)');
+      assert.equal(await d.textContent('#navVault'), '5', 'due count in sidebar (code + key points)');
 
       // search
       await d.fill('#vQ', 'printf');
@@ -563,14 +563,14 @@ async function step(name, fn) {
       let v = await sw.evaluate(async () => (await chrome.storage.local.get('vault')).vault.find((c) => /printf/.test(c.text)));
       assert.deepEqual([v.status, /newline/.test(v.notes)], ['difficult', true]);
       await d.fill('#vQ', '');
-      await d.waitForFunction(() => document.querySelectorAll('#clipList .clip').length === 5);
+      await d.waitForFunction(() => document.querySelectorAll('#clipList .clip').length === 4);
 
       // filters
       await d.selectOption('#vStatus', 'difficult');
       assert.equal(await d.locator('#clipList .clip').count(), 1);
       await d.selectOption('#vStatus', '');
       await d.selectOption('#vSite', 'w3schools');
-      assert.equal(await d.locator('#clipList .clip').count(), 2);
+      assert.equal(await d.locator('#clipList .clip').count(), 1);
       await d.selectOption('#vSite', '');
       await d.locator('#langTabs .ltab[data-l="python"]').click();
       assert.equal(await d.locator('#clipList .clip').count(), 1);
@@ -627,6 +627,131 @@ async function step(name, fn) {
       r = await predict(p, 1, '8');
       assert.equal(r.symbol, '✓');
       await p.close();
+    });
+
+    await step('Notes + key points on GfG: bar ✎ note, select text → Key point / Note, page note; vault sections', async () => {
+      await sw.evaluate(() => chrome.storage.local.set({ vault: [] }));
+      const g = await open(URLS.gfg);
+      // 1) ✎ in the bar: note saved with the code
+      await bar(g, 0).locator('.logo').click();
+      await bar(g, 0).locator('.icon.note').click();
+      await bar(g, 0).locator('.notebox textarea').fill('i <= 3 so it prints 1 2 3');
+      await bar(g, 0).locator('.notebox .savenote').click();
+      await bar(g, 0).locator('.notebox .notestatus', { hasText: 'Saved' }).waitFor();
+      // 2) select a sentence → floating [Key point]
+      const pick = async () => g.evaluate(() => {
+        const p = [...document.querySelectorAll('article p, p')].find((x) => x.textContent.trim().split(/\s+/).length > 5) || (() => { const n = document.createElement('p'); n.textContent = 'A for loop repeats code a fixed number of times.'; document.body.prepend(n); return n; })();
+        getSelection().selectAllChildren(p);
+        document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+        return p.textContent.trim();
+      });
+      const sentence = await pick();
+      const tools = g.locator('[data-outputiq-seltools]');
+      await tools.locator('.stool.point').waitFor();
+      await tools.locator('.stool.point').click();
+      await g.waitForFunction(() => document.querySelector('[data-outputiq-seltools]').style.display === 'none');
+      // 3) select again → Note
+      await pick();
+      await tools.locator('.stool.note').click();
+      await tools.locator('.notebox textarea').fill('my own words: loop = repeat');
+      await tools.locator('.notebox .savenote').click();
+      await tools.locator('.notestatus', { hasText: 'Saved' }).waitFor();
+      // 4) popup ✎ → topic note (same message the popup sends)
+      await g.bringToFront();
+      const r = await sw.evaluate(async () => { const [t] = await chrome.tabs.query({ active: true, lastFocusedWindow: true }); return chrome.tabs.sendMessage(t.id, { type: 'NOTE_REQUEST', notes: 'Topic summary: init; condition; update' }, { frameId: 0 }); });
+      assert.equal(r.ok, true);
+      const v = await sw.evaluate(async () => (await chrome.storage.local.get('vault')).vault);
+      const code = v.find((c) => c.kind === 'code'), pt = v.find((c) => c.kind === 'text'), note = v.find((c) => c.kind === 'note');
+      assert.ok(code && /prints 1 2 3/.test(code.notes), 'code saved with its note');
+      assert.ok(pt && pt.text === sentence && /my own words/.test(pt.notes), 'key point saved once, note added to it');
+      assert.equal(v.filter((c) => c.kind === 'text').length, 1);
+      assert.ok(note && /Topic summary/.test(note.text) && note.topic, 'topic note with heading');
+
+      const d = await ctx.newPage();
+      d.on('pageerror', (e) => pageErrors.push('vault-notes: ' + e));
+      await d.setViewportSize({ width: 1280, height: 1000 });
+      await d.goto(`chrome-extension://${extId}/src/dashboard/dashboard.html#vault`);
+      await d.locator('#langTabs .ltab[data-l="all"]').click();
+      await d.waitForSelector('#vKinds .ltab');
+      assert.deepEqual(await d.locator('#vKinds .ltab').allTextContents(), ['Code1', 'My notes3', 'Key points1']);
+      assert.match(await d.locator('#clipList .clip textarea.notearea').first().inputValue(), /prints 1 2 3/, 'note shown under the code');
+      await d.locator('#vKinds .ltab[data-kind="points"]').click();
+      assert.equal(await d.locator('ul.points li').count(), 1);
+      assert.match(await d.locator('.topicsec h3').first().textContent(), /\S/);
+      assert.match(await d.locator('ul.points li').textContent(), /my own words/);
+      await d.locator('#vKinds .ltab[data-kind="notes"]').click();
+      assert.equal(await d.locator('.notecard').count(), 3);
+      const ta = d.locator('.notecard textarea').first();
+      await ta.fill('Topic summary (edited)');
+      await d.locator('.notecard .saved', { hasText: 'Saved' }).waitFor();
+      const edited = await sw.evaluate(async () => (await chrome.storage.local.get('vault')).vault.find((c) => c.kind === 'note').text);
+      assert.equal(edited, 'Topic summary (edited)');
+      await d.screenshot({ path: path.join(SHOTS, 'vault-notes.png'), fullPage: true });
+      await d.locator('#vKinds .ltab[data-kind="points"]').click();
+      await d.screenshot({ path: path.join(SHOTS, 'vault-points.png'), fullPage: true });
+      await d.close();
+      await g.close();
+    });
+
+    await step('Practice (dashboard): questions from wrong attempts + difficult clips in C++/Java/Python; wrong answer → Difficult', async () => {
+      // a real wrong attempt (Java) and a C++ one, newest
+      await sw.evaluate(async () => {
+        const { attempts } = await chrome.storage.local.get('attempts');
+        const now = Date.now();
+        attempts.push({ id: 'pj1', ts: now, questionId: 'pj1', language: 'java', site: 'w3schools', url: 'https://www.w3schools.com/java/java_for_loop.asp', pageTitle: 'Java For Loop',
+          code: 'public class Main {\n    public static void main(String[] args) {\n        for (int i = 0; i < 3; i++)\n            System.out.println(i);\n        System.out.println(7 / 2);\n    }\n}', prediction: '0 1 2', result: 'incorrect', actualOutput: '0\n1\n2\n3\n', concepts: ['loops'] });
+        attempts.push({ id: 'pc1', ts: now + 1, questionId: 'pc1', language: 'cpp', site: 'geeksforgeeks', url: 'https://www.geeksforgeeks.org/cpp/cpp-for-loop/', pageTitle: 'for Loop in C++',
+          code: '#include <iostream>\nusing namespace std;\nint main() {\n    int n = 3;\n    for (int i = 1; i <= n; i++)\n        cout << i << endl;\n    return 0;\n}', prediction: '1 2', result: 'incorrect', actualOutput: '1\n2\n3\n', concepts: ['loops'] });
+        await chrome.storage.local.set({ attempts });
+      });
+      const d = await ctx.newPage();
+      d.on('pageerror', (e) => pageErrors.push('practice: ' + e));
+      await d.setViewportSize({ width: 1280, height: 1000 });
+      await d.goto(`chrome-extension://${extId}/src/dashboard/dashboard.html#practice`);
+      await d.locator('#langTabs .ltab[data-l="all"]').click();
+      await d.waitForSelector('.pq-src');
+      assert.equal(await d.locator('.side nav a[data-view="practice"]').count(), 1, 'Practice in the sidebar');
+      assert.ok(Number(await d.locator('.pq-src[data-src="wrong"] b').textContent()) >= 1);
+      await d.screenshot({ path: path.join(SHOTS, 'practice-start.png'), fullPage: true });
+      const before = server.wandbox.length + server.submissions.length;
+      await d.locator('#startPractice').click();
+      await d.locator('.pq-opt').first().waitFor({ timeout: 60000 }).catch(async (e) => {
+        console.log('\nBODY:', await d.locator('#practiceBody').textContent());
+        console.log('WB:', JSON.stringify(server.wandbox.slice(-6).map((x) => x.compiler + ' ' + x.code.slice(0, 60))));
+        throw e; });
+      assert.ok(server.wandbox.length + server.submissions.length > before, 'changed programs were run');
+      let n = 0, right = 0;
+      for (let k = 0; k < 10; k++) {
+        if (await d.locator('.pq-end').count()) break;
+        assert.ok((await d.locator('.pq-prompt').textContent()).length > 10);
+        // pick the right answer on odd questions, the first option on even ones
+        await d.locator('.pq-opt').first().click();
+        await d.locator('.pq-why.show').waitFor();
+        if (k === 0) await d.screenshot({ path: path.join(SHOTS, 'practice-question.png'), fullPage: true });
+        if (await d.locator('.pq-opt.wrong').count() === 0) right++;
+        n++;
+        await d.locator('.pq-next').click();
+      }
+      assert.ok(n >= 3, 'at least 3 questions: ' + n);
+      assert.match(await d.locator('.pq-end h2').textContent(), new RegExp('Score ' + right + ' / ' + n));
+      const log = await sw.evaluate(async () => (await chrome.storage.local.get('quizLog')).quizLog.filter((x) => x.where === 'dashboard'));
+      assert.equal(log.length, n, 'answers logged');
+      await d.screenshot({ path: path.join(SHOTS, 'practice-end.png'), fullPage: true });
+
+      // Difficult clips source (Java snippet saved earlier is not code here; seed a difficult Python clip)
+      await sw.evaluate(async () => {
+        const { vault } = await chrome.storage.local.get('vault');
+        vault.push({ id: 'pyd1', kind: 'code', language: 'python', text: 'x = 7\nfor i in range(3):\n    print(i)\nprint(x // 2)', concepts: ['loops'], concept: 'loops', topic: 'Loops in Python', site: 'geeksforgeeks', url: 'https://www.geeksforgeeks.org/python/loops-in-python/', pageTitle: 'Loops in Python', notes: '', status: 'difficult', createdAt: Date.now(), updatedAt: Date.now(), reviewedAt: null, reviewCount: 0, nextReviewAt: Date.now() });
+        await chrome.storage.local.set({ vault });
+      });
+      await d.locator('.pq-end .btn', { hasText: 'Practice again' }).click();
+      await d.locator('#langTabs .ltab[data-l="python"]').click();
+      await d.locator('.pq-src[data-src="difficult"]').click();
+      await d.locator('#startPractice').click();
+      await d.locator('.pq-opt').first().waitFor({ timeout: 60000 }).catch(async (e) => { await d.screenshot({ path: path.join(SHOTS, 'practice-fail.png'), fullPage: true }); console.log(await d.locator('#practiceBody').textContent()); throw e; });
+      assert.match(await d.locator('.pq-from').textContent(), /Loops.*Difficult clip/);
+      await d.locator('#langTabs .ltab[data-l="all"]').click().catch(() => {});
+      await d.close();
     });
 
     await step('no JavaScript errors on any page', async () => {

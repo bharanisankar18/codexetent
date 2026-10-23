@@ -113,3 +113,20 @@ test('chrome.storage helpers: save -> edit -> review -> delete', async () => {
   assert.equal(store.vault.length, 0);
   delete global.chrome;
 });
+
+test('notes: topic notes, notes saved with code, a second save adds the note, notes are never "due"', () => {
+  const note = V.makeClip({ kind: 'note', text: '  for loop = init; check; update  ', pageTitle: 'for Loop in C++ - GeeksforGeeks', url: 'https://www.geeksforgeeks.org/cpp/cpp-for-loop/' }, T0);
+  assert.deepEqual([note.kind, note.language, note.text, note.topic], ['note', 'text', 'for loop = init; check; update', 'for Loop in C++']);
+  const code = V.makeClip({ text: 'int x = 7 / 2;', language: 'cpp', notes: 'int division!', url: 'https://www.geeksforgeeks.org/a/' }, T0);
+  assert.equal(code.notes, 'int division!');
+  let r = V.addClip([note], code);
+  r = V.addClip(r.list, V.makeClip({ kind: 'note', text: 'second note', url: 'https://www.geeksforgeeks.org/cpp/cpp-for-loop/' }, T0 + 1));
+  assert.equal(r.list.length, 3, 'notes are never merged as duplicates');
+  r = V.addClip(r.list, V.makeClip({ text: 'int x = 7 / 2;', language: 'cpp', notes: 'prints 3', url: 'https://www.geeksforgeeks.org/a/' }, T0 + 2));
+  assert.deepEqual([r.duplicate, r.updated, r.clip.notes, r.list.length], [true, true, 'int division!\nprints 3', 3]);
+  const s = V.vaultStats(r.list, T0 + 10);
+  assert.deepEqual([s.notes, s.code, s.keyPoints, s.due], [2, 1, 0, 1]);
+  assert.equal(V.reviewQueue(r.list, T0 + 10).every((c) => c.kind !== 'note'), true);
+  assert.equal(V.updateClip(r.list, note.id, { text: 'edited' }).clip.text, 'edited');
+  assert.equal(V.updateClip(r.list, code.id, { text: 'hack' }).clip.text, 'int x = 7 / 2;', 'saved code text cannot be rewritten');
+});

@@ -79,6 +79,12 @@
     t.style.height = Math.min(t.scrollHeight, 132) + 'px';
   }
 
+  var ICONS = {
+    info: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.8v.2"/></svg>',
+    down: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6.5 13.5 12 19l5.5-5.5"/></svg>',
+    close: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg>'
+  };
+
   function orderedBars() {
     return Array.prototype.slice.call(document.querySelectorAll('[data-outputiq-host]'))
       .map(function (host) { return host.__oiq; })
@@ -133,7 +139,8 @@
     var answer = h('textarea', 'field answer');
     answer.rows = 1;
     answer.spellcheck = false;
-    answer.placeholder = 'What will it print?  (Shift+Enter = new line)';
+    answer.placeholder = 'What will it print?';
+    answer.title = 'Type the output. Enter checks, Shift+Enter adds a new line.';
     answer.setAttribute('aria-label', 'Your predicted output');
     panel.appendChild(answer);
 
@@ -145,14 +152,18 @@
     verdict.setAttribute('role', 'img');
     panel.appendChild(verdict);
 
-    var moreBtn = h('button', 'icon', 'ⓘ');
+    var sep = h('span', 'sep'); sep.setAttribute('aria-hidden', 'true');
+    panel.appendChild(sep);
+    var moreBtn = h('button', 'icon');
+    moreBtn.innerHTML = ICONS.info; // static, trusted markup
     moreBtn.type = 'button';
     moreBtn.title = 'Show details and the exact code that runs';
     moreBtn.setAttribute('aria-label', 'Details');
     moreBtn.setAttribute('aria-expanded', 'false');
     panel.appendChild(moreBtn);
 
-    var nextBtn = h('button', 'icon', '↓');
+    var nextBtn = h('button', 'icon');
+    nextBtn.innerHTML = ICONS.down;
     nextBtn.type = 'button';
     nextBtn.title = 'Next example on this page';
     nextBtn.setAttribute('aria-label', 'Next example');
@@ -170,7 +181,17 @@
       });
     });
 
-    var closeBtn = h('button', 'icon', '×');
+    // ✎ notes for this example: saved with the code in My Revision Vault (shown under the code)
+    var noteBtn = h('button', 'icon note');
+    noteBtn.type = 'button';
+    noteBtn.innerHTML = NOTE_SVG; // static, trusted markup
+    noteBtn.title = 'Write a note for this example (saved with the code)';
+    noteBtn.setAttribute('aria-label', 'Add a note to this example');
+    noteBtn.setAttribute('aria-expanded', 'false');
+    panel.appendChild(noteBtn);
+
+    var closeBtn = h('button', 'icon close');
+    closeBtn.innerHTML = ICONS.close;
     closeBtn.type = 'button';
     closeBtn.title = 'Close';
     closeBtn.setAttribute('aria-label', 'Close');
@@ -186,6 +207,18 @@
     msg.appendChild(tagsEl);
     msg.appendChild(detailsLink);
     shadow.appendChild(msg);
+
+    var noteBox = noteEditor('Your note for this example… (Ctrl+Enter saves)', function (text, done) {
+      saveSelection({ text: info.source || code, hint: info.language, notes: text }, function (r) {
+        if (r && r.ok) { saveBtn.classList.add('saved'); noteBtn.classList.add('saved'); }
+        done(r && r.ok);
+      });
+    });
+    shadow.appendChild(noteBox.el);
+    noteBtn.addEventListener('click', function () {
+      var on = noteBox.toggle();
+      noteBtn.setAttribute('aria-expanded', String(on));
+    });
 
     var details = h('div', 'details');
     shadow.appendChild(details);
@@ -317,6 +350,7 @@
         resultSlot.textContent = '';
         resultSlot.appendChild(OQ.render.renderResult(document, response, prediction));
         showConcepts(response && response.attempt && response.attempt.concepts);
+        if (response && response.ok && response.run && response.run.category !== 'network_error') revealFor(block, host);
         if (s.state !== 'ok' && details.classList.contains('show')) toggleDetails(true);
       });
     });
@@ -409,13 +443,17 @@
 
   function saveSelection(payload, done) {
     try {
-      chrome.runtime.sendMessage({ type: 'SAVE_CLIP', text: payload.text, hint: payload.hint, url: location.href, pageTitle: document.title }, function (r) {
+      chrome.runtime.sendMessage({ type: 'SAVE_CLIP', text: payload.text, hint: payload.hint, kind: payload.kind, notes: payload.notes || '', url: location.href, pageTitle: document.title }, function (r) {
         if (chrome.runtime.lastError || !r) r = { ok: false, error: 'The extension was reloaded. Refresh this page and try again.' };
         if (!r.ok) toast(r.error || 'Could not save.', { error: true });
         else {
-          var c = r.clip, lang = OQ.detector.LABELS[c.language] || 'Text';
+          var c = r.clip, lang = c.kind === 'note' ? 'Note' : c.kind === 'text' ? 'Key point' : (OQ.detector.LABELS[c.language] || 'Text');
           var concept = c.concept && OQ.concepts.get(c.language, c.concept);
-          toast(r.duplicate ? 'Already in your Revision Vault' : 'Saved to My Revision Vault', { id: c.id, sub: lang + (concept ? ' · ' + concept.name : '') + (c.topic ? ' · ' + c.topic : '') });
+          var head = c.kind === 'note' ? 'Note saved to My Revision Vault'
+            : r.updated ? 'Note added to your saved ' + (c.kind === 'text' ? 'key point' : 'code')
+            : r.duplicate ? 'Already in your Revision Vault'
+            : (c.kind === 'text' ? 'Key point saved' : 'Saved to My Revision Vault') + (payload.notes ? ' with your note' : '');
+          toast(head, { id: c.id, sub: lang + (concept ? ' · ' + concept.name : '') + (c.topic ? ' · ' + c.topic : '') });
         }
         if (done) done(r);
       });
@@ -425,9 +463,147 @@
     }
   }
 
+  // ---------------------------------------------------------------- Notes + key points (GfG, W3Schools)
+  var NOTE_SVG = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" style="fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><path d="M5 4.5h10l4 4V19.5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-14a1 1 0 0 1 1-1z"/><path d="M8 10h8M8 14h8M8 18h5"/></svg>';
+  var POINT_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" style="fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round"><circle cx="5" cy="7" r="1.4" style="fill:currentColor"/><circle cx="5" cy="12" r="1.4" style="fill:currentColor"/><circle cx="5" cy="17" r="1.4" style="fill:currentColor"/><path d="M9.5 7H20M9.5 12H20M9.5 17h7"/></svg>';
+
+  /** Small note editor (textarea + Save/Cancel). onSave(text, done(ok)). */
+  function noteEditor(placeholder, onSave) {
+    var wrap = h('div', 'notebox');
+    var ta = h('textarea', 'field notearea');
+    ta.rows = 3; ta.placeholder = placeholder; ta.spellcheck = true;
+    ta.setAttribute('aria-label', 'Note');
+    var row = h('div', 'noterow');
+    var save = h('button', 'savenote', 'Save note'); save.type = 'button';
+    var cancel = h('button', 'link', 'Cancel'); cancel.type = 'button';
+    var status = h('span', 'notestatus');
+    row.appendChild(save); row.appendChild(cancel); row.appendChild(status);
+    wrap.appendChild(ta); wrap.appendChild(row);
+    ['keydown', 'keyup', 'keypress'].forEach(function (ev) { ta.addEventListener(ev, function (e) { e.stopPropagation(); }); });
+    ta.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); save.click(); }
+      if (e.key === 'Escape') api.toggle(false);
+    });
+    save.addEventListener('click', function () {
+      if (!ta.value.trim()) { status.textContent = 'Write something first.'; ta.focus(); return; }
+      save.disabled = true; status.textContent = 'Saving…';
+      onSave(ta.value.trim(), function (ok) {
+        save.disabled = false;
+        status.textContent = ok ? 'Saved ✓' : '';
+        if (ok) { ta.value = ''; setTimeout(function () { api.toggle(false); status.textContent = ''; }, 900); }
+      });
+    });
+    var api = {
+      el: wrap, textarea: ta,
+      toggle: function (show) {
+        var on = show == null ? !wrap.classList.contains('show') : show;
+        wrap.classList.toggle('show', on);
+        if (on) ta.focus();
+        return on;
+      }
+    };
+    cancel.addEventListener('click', function () { api.toggle(false); });
+    return api;
+  }
+
+  // Floating tools when you select text on the page: [• Key point] [✎ Note] (or [Save code] inside a code block)
+  var selHost = null, selUi = null, selPayload = null;
+  function selTools() {
+    if (selHost) return selUi;
+    selHost = document.createElement('div');
+    selHost.setAttribute('data-outputiq-host', '');
+    selHost.setAttribute('data-outputiq-seltools', '');
+    selHost.setAttribute('data-theme', resolvedTheme());
+    var sh = selHost.attachShadow({ mode: 'open' });
+    var st = document.createElement('style');
+    st.textContent = OQ.panelCss + SEL_CSS;
+    sh.appendChild(st);
+    var box = h('div', 'seltools');
+    var point = h('button', 'stool point'); point.type = 'button';
+    point.innerHTML = POINT_SVG; point.appendChild(document.createTextNode('Key point'));
+    point.title = 'Save the selected text as a key point in My Revision Vault';
+    var note = h('button', 'stool note'); note.type = 'button';
+    note.innerHTML = NOTE_SVG; note.appendChild(document.createTextNode('Note'));
+    note.title = 'Save the selection with your own note';
+    box.appendChild(point); box.appendChild(note);
+    var editor = noteEditor('Your note about this… (Ctrl+Enter saves)', function (text, done) {
+      saveSelection(Object.assign({}, selPayload, { notes: text }), function (r) { done(r && r.ok); if (r && r.ok) setTimeout(hideSel, 900); });
+    });
+    var pop = h('div', 'selpop');
+    pop.appendChild(box); pop.appendChild(editor.el);
+    sh.appendChild(pop);
+    // keep the page selection while clicking our buttons
+    pop.addEventListener('mousedown', function (e) { if (e.target.tagName !== 'TEXTAREA') e.preventDefault(); e.stopPropagation(); });
+    point.addEventListener('click', function () {
+      if (!selPayload) return;
+      saveSelection(selPayload, function () { hideSel(); });
+    });
+    note.addEventListener('click', function () { editor.toggle(true); });
+    document.documentElement.appendChild(selHost);
+    selUi = { host: selHost, point: point, note: note, editor: editor, pop: pop };
+    return selUi;
+  }
+  function hideSel() {
+    if (!selHost) return;
+    selHost.style.display = 'none';
+    selUi.editor.toggle(false);
+    selPayload = null;
+  }
+  function showSelTools() {
+    if (!adapter.selectionTools) return;
+    var sel = window.getSelection();
+    if (!sel || sel.isCollapsed || !sel.rangeCount) return hideSel();
+    var text = sel.toString();
+    if (!text || text.trim().length < 3) return hideSel();
+    var range = sel.getRangeAt(0);
+    var node = range.commonAncestorContainer;
+    var el = node.nodeType === 1 ? node : node.parentElement;
+    if (!el || el.closest('[data-outputiq-host], input, textarea, [contenteditable="true"]')) return;
+    var inCode = !!el.closest(CODE_SEL);
+    var p = readSelection();
+    selPayload = inCode ? { text: p ? p.text : text, hint: p && p.hint } : { text: text.replace(/\s+\n/g, '\n').trim(), kind: 'text' };
+    var ui = selTools();
+    ui.point.lastChild.textContent = inCode ? 'Save code' : 'Key point';
+    ui.point.title = inCode ? 'Save the selected code to My Revision Vault' : 'Save the selected text as a key point in My Revision Vault';
+    ui.editor.toggle(false);
+    var rect = range.getBoundingClientRect ? range.getBoundingClientRect() : (el.getBoundingClientRect ? el.getBoundingClientRect() : { top: 0, bottom: 0, left: 0, width: 0 });
+    var top = rect.top + window.scrollY - 44, left = rect.left + window.scrollX + rect.width / 2;
+    if (rect.top < 56) top = rect.bottom + window.scrollY + 8;
+    selHost.style.cssText = 'position:absolute !important;z-index:2147483646 !important;margin:0 !important;display:block !important;' +
+      'top:' + Math.max(0, top) + 'px !important;left:' + Math.max(8, Math.min(left - 110, document.documentElement.clientWidth - 330)) + 'px !important;';
+  }
+  var SEL_CSS = `
+:host([data-outputiq-seltools]) { all: initial; }
+.selpop { display: grid; gap: 6px; width: max-content; max-width: 320px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif; }
+.seltools { display: inline-flex; gap: 2px; padding: 3px; border-radius: 12px; background: var(--bg); background-image: var(--bg-grad); border: 1px solid var(--line); box-shadow: var(--shadow), 0 12px 30px -12px rgba(0,0,0,.55); }
+.stool { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 11px; border: 0; border-radius: 9px; background: transparent; color: var(--ink); font-family: inherit; font-size: 12.5px; font-weight: 600; line-height: 1; cursor: pointer; }
+.stool:hover { background: var(--field); box-shadow: var(--glow); }
+.stool.point { background: var(--brand); color: var(--brand-ink); }
+.notebox { margin: 0; }
+`;
+  if (adapter.selectionTools) {
+    document.addEventListener('mouseup', function (e) {
+      if (selHost && e.composedPath && e.composedPath().indexOf(selHost) !== -1) return;
+      setTimeout(showSelTools, 10);
+    });
+    document.addEventListener('keyup', function (e) { if (e.shiftKey || e.key === 'Shift') setTimeout(showSelTools, 10); });
+    document.addEventListener('mousedown', function (e) {
+      if (selHost && e.composedPath && e.composedPath().indexOf(selHost) !== -1) return;
+      hideSel();
+    });
+    window.addEventListener('scroll', function () { if (selHost && !selUi.editor.el.classList.contains('show')) hideSel(); }, { passive: true });
+  }
+
   try {
     chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
-      if (!msg || msg.type !== 'CLIP_REQUEST' || sender.id !== chrome.runtime.id) return false;
+      if (!msg || sender.id !== chrome.runtime.id) return false;
+      if (msg.type === 'NOTE_REQUEST') {
+        // popup → "Note": a note on its own, filed under this page's topic
+        saveSelection({ kind: 'note', text: '', notes: String(msg.notes || '') }, sendResponse);
+        return true;
+      }
+      if (msg.type === 'PAGE_INFO') { sendResponse({ ok: true, title: document.title, url: location.href, supported: true }); return false; }
+      if (msg.type !== 'CLIP_REQUEST') return false;
       var p = readSelection();
       if (!p && msg.fallbackText) p = { text: msg.fallbackText, hint: (OQ.adapters.pathLanguage && OQ.adapters.pathLanguage(location)) || null };
       if (!p) {
@@ -440,7 +616,66 @@
     });
   } catch (e) { /* tests without chrome.runtime.onMessage */ }
 
+  // ---------------------------------------------------------------- Spoiler guard (blur the site's answers)
+  // Toggle: popup → "Blur outputs" (chrome.storage.local "spoiler": {on}). Click a blurred box to peek;
+  // checking an example reveals its own answer.
+  var spoilerOn = false;
+  var SPOILER_CSS = '.cx-spoiler:not(.cx-revealed){filter:blur(7px) !important;cursor:pointer !important;user-select:none !important;transition:filter .2s}' +
+    '.cx-spoiler:not(.cx-revealed):hover{filter:blur(5px) !important}' +
+    'div.cx-spoiler:not(.cx-revealed),pre.cx-spoiler:not(.cx-revealed){position:relative}';
+  function spoilerStyle() {
+    if (document.getElementById('cx-spoiler-style')) return;
+    var st = document.createElement('style');
+    st.id = 'cx-spoiler-style';
+    st.textContent = SPOILER_CSS;
+    (document.head || document.documentElement).appendChild(st);
+  }
+  function applySpoilers() {
+    if (!adapter.spoilers) return;
+    if (spoilerOn) spoilerStyle();
+    adapter.spoilers(document).forEach(function (el) {
+      if (el.__cxSpoiler) return;
+      el.__cxSpoiler = true;
+      el.classList.add('cx-spoiler');
+      el.title = 'Codextent: answer hidden — click to reveal';
+      el.addEventListener('click', function (e) {
+        if (!spoilerOn || el.classList.contains('cx-revealed')) return;
+        e.preventDefault(); e.stopPropagation();
+        el.classList.add('cx-revealed');
+        el.removeAttribute('title');
+      }, true);
+    });
+    document.documentElement.classList.toggle('cx-spoilers-on', spoilerOn);
+    var st = document.getElementById('cx-spoiler-style');
+    if (!spoilerOn && st) st.remove();   // off: no blur style on the page at all
+  }
+  /** Reveal the answer that belongs to this example: inside its code block, or the first one after it (before the next example). */
+  function revealFor(block, host) {
+    var outs = document.querySelectorAll('.cx-spoiler:not(.cx-revealed)');
+    var hosts = orderedBars().map(function (b) { return b.host; });
+    var next = hosts[hosts.indexOf(host) + 1];
+    for (var i = 0; i < outs.length; i++) {
+      var o = outs[i];
+      var inside = block.contains(o);
+      var after = host.compareDocumentPosition(o) & Node.DOCUMENT_POSITION_FOLLOWING;
+      var beforeNext = !next || (next.compareDocumentPosition(o) & Node.DOCUMENT_POSITION_PRECEDING);
+      if (inside || (after && beforeNext)) { o.classList.add('cx-revealed'); o.removeAttribute('title'); if (!inside) break; }
+    }
+  }
+  try {
+    chrome.storage.local.get('spoiler').then(function (d) { spoilerOn = !!(d.spoiler && d.spoiler.on); applySpoilers(); });
+    chrome.storage.onChanged.addListener(function (ch, area) {
+      if (area !== 'local' || !ch.spoiler) return;
+      spoilerOn = !!(ch.spoiler.newValue && ch.spoiler.newValue.on);
+      if (spoilerOn) document.querySelectorAll('.cx-revealed').forEach(function (o) { o.classList.remove('cx-revealed'); o.title = 'Codextent: answer hidden — click to reveal'; });
+      applySpoilers();
+    });
+  } catch (e) { /* tests without storage */ }
+
   scan();
+  applySpoilers();
+  // GfG fills some articles in after load: look again a few times
+  [800, 2000, 4000].forEach(function (ms) { setTimeout(applySpoilers, ms); });
 
   // Pages can load tabs/content after the first paint: rescan on DOM changes (debounced).
   var timer = null;
@@ -452,6 +687,6 @@
     });
     if (!relevant) return;
     clearTimeout(timer);
-    timer = setTimeout(scan, 400);
+    timer = setTimeout(function () { scan(); applySpoilers(); }, 400);
   }).observe(document.body, { childList: true, subtree: true });
 })();

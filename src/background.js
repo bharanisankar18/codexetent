@@ -17,7 +17,7 @@
  *
  * The API key is read here and only here. Content scripts never receive it.
  */
-importScripts('lib/compare.js', 'lib/judge0.js', 'lib/wandbox.js', 'lib/runner.js', 'lib/stats.js', 'lib/storage.js', 'lib/concepts.js', 'lib/concepts-lang.js', 'lib/detector.js', 'lib/vault.js');
+importScripts('lib/compare.js', 'lib/judge0.js', 'lib/wandbox.js', 'lib/runner.js', 'lib/stats.js', 'lib/storage.js', 'lib/concepts.js', 'lib/concepts-lang.js', 'lib/detector.js', 'lib/vault.js', 'lib/quiz.js');
 
 var OQ = self.OutputIQ;
 
@@ -67,6 +67,39 @@ async function checkPrediction(msg) {
   }
 }
 
+/** Quiz me: concept-bank questions + what-if questions whose answers come from really running the changed code. */
+async function buildQuiz(msg) {
+  var lang = msg.language;
+  if (['c', 'cpp', 'java', 'python'].indexOf(lang) === -1) return { ok: false, error: 'Practice works for C, C++, Java and Python.' };
+  if (typeof msg.code !== 'string' || !msg.code.trim() || msg.code.length > 20000) return { ok: false, error: 'No code to quiz on.' };
+  var settings = await OQ.storage.getSettings();
+  var Q = OQ.quiz;
+  var maxWhatIf = msg.maxWhatIf != null ? msg.maxWhatIf : 3, maxConcept = msg.maxConcept != null ? msg.maxConcept : 2;
+  var base = await OQ.runner.run(settings, lang, msg.code, msg.stdin || '');
+  var whatifs = [];
+  if (base.category === 'ok' && maxWhatIf > 0) {
+    var muts = Q.mutations(msg.code, lang).slice(0, maxWhatIf + 1);
+    var runs = await Promise.all(muts.map(function (m) { return OQ.runner.run(settings, lang, m.code, msg.stdin || ''); }));
+    whatifs = muts.map(function (m, i) { return Q.whatIfQuestion(m, base.stdout, runs[i]); }).filter(Boolean).slice(0, maxWhatIf);
+  }
+  var concepts = Q.conceptQuestions(OQ.concepts, lang, OQ.concepts.tag(msg.code, lang), maxConcept);
+  var questions = [];
+  if (concepts[0]) questions.push(concepts[0]);
+  questions = questions.concat(whatifs);
+  if (concepts[1]) questions.push(concepts[1]);
+  if (!questions.length) return { ok: false, error: base.category === 'ok' ? 'No good questions for this example. Try a longer one.' : 'Could not run this example, so no questions yet.' };
+  return { ok: true, questions: questions, original: base.category === 'ok' ? base.stdout : null };
+}
+
+async function saveQuizAnswer(msg) {
+  var d = await chrome.storage.local.get('quizLog');
+  var log = Array.isArray(d.quizLog) ? d.quizLog : [];
+  log.push({ ts: Date.now(), where: msg.where === 'dashboard' ? 'dashboard' : 'page', qid: String(msg.qid || '').slice(0, 80), kind: msg.kind === 'concept' ? 'concept' : 'whatif', concept: String(msg.concept || '').slice(0, 40),
+    correct: !!msg.correct, url: String(msg.url || '').slice(0, 2000), pageTitle: String(msg.pageTitle || '').slice(0, 300) });
+  if (log.length > 500) log = log.slice(log.length - 500);
+  await chrome.storage.local.set({ quizLog: log });
+}
+
 /** Start running as soon as the learner opens the bar, so Check is (almost) instant. Result is cached, not saved. */
 async function prerun(msg) {
   if (typeof msg.code !== 'string' || !msg.code.trim() || msg.code.length > 65000) return;
@@ -106,16 +139,23 @@ var VAULT_PAGE = 'src/dashboard/dashboard.html#vault';
 
 async function saveClip(msg) {
   var text = typeof msg.text === 'string' ? msg.text : '';
+  var notes = typeof msg.notes === 'string' ? msg.notes.slice(0, 5000) : '';
+  var url = String(msg.url || '');
+  var base = { site: OQ.stats.siteOf({ url: url }), url: url, pageTitle: String(msg.pageTitle || ''), notes: notes };
+  if (msg.kind === 'note') {
+    // a note on its own, filed under the page's topic
+    if (!notes.trim()) return { ok: false, error: 'Write a note first.' };
+    var rn = await OQ.vault.saveClip(Object.assign(base, { kind: 'note', text: notes, notes: '' }));
+    return { ok: true, clip: rn.clip, duplicate: false };
+  }
   if (!text.trim()) return { ok: false, error: 'Select some code or text first.' };
   if (text.length > 20000) return { ok: false, error: 'The selection is too long (over 20,000 characters).' };
-  var c = OQ.vault.classify(text, msg.hint || null, OQ.detector, OQ.concepts);
-  var url = String(msg.url || '');
-  var r = await OQ.vault.saveClip({
-    text: c.text, language: c.language, concepts: c.concepts,
-    site: OQ.stats.siteOf({ url: url }), url: url, pageTitle: String(msg.pageTitle || '')
-  });
+  var c = msg.kind === 'text'
+    ? { text: text, language: 'text', concepts: [] }        // key point: the learner picked page text, keep it as text
+    : OQ.vault.classify(text, msg.hint || null, OQ.detector, OQ.concepts);
+  var r = await OQ.vault.saveClip(Object.assign(base, { text: c.text, language: c.language, concepts: c.concepts }));
   if (!r.clip) return { ok: false, error: r.error || 'Nothing to save.' };
-  return { ok: true, clip: r.clip, duplicate: r.duplicate };
+  return { ok: true, clip: r.clip, duplicate: r.duplicate, updated: !!r.updated };
 }
 
 /** Ask the tab's content script for the selection (keeps newlines); fall back to Chrome's selectionText. */
@@ -155,6 +195,14 @@ chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
     // Black icon for light toolbars (manifest default), white icon for dark toolbars.
     var w = msg.dark ? 'icons/icon-white' : 'icons/icon';
     chrome.action.setIcon({ path: { 16: w + '16.png', 32: w + '32.png', 48: w + '48.png', 128: w + '128.png' } }).catch(function () {});
+    return false;
+  }
+  if (msg.type === 'QUIZ_BUILD') {
+    buildQuiz(msg).then(sendResponse, function (e) { sendResponse({ ok: false, error: String(e && e.message || e) }); });
+    return true;
+  }
+  if (msg.type === 'QUIZ_ANSWER') {
+    saveQuizAnswer(msg).catch(function () {});
     return false;
   }
   if (msg.type === 'PRERUN') {

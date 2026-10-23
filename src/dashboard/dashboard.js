@@ -48,15 +48,16 @@
   var SITE = {}; SITES.forEach(function (s) { SITE[s.id] = s; });
   var SYM = { correct: ['✓', 'ok', 'Correct'], incorrect: ['✗', 'bad', 'Wrong'], compile_error: ['!', 'warn', 'Compile error'],
               runtime_error: ['!', 'warn', 'Runtime error'], timeout: ['⏱', 'warn', 'Timeout'], error: ['!', 'warn', 'Runner error'] };
-  var VIEWS = { vault: 'My Revision Vault', home: 'My Learning Hub', recent: 'Recent attempts', revision: 'Needs revision', concepts: 'Concepts' };
+  var VIEWS = { vault: 'My Revision Vault', home: 'My Learning Hub', recent: 'Recent attempts', revision: 'Needs revision', practice: 'Practice', concepts: 'Concepts' };
   var SUBS = { vault: 'Code you clipped from learning sites — add notes, mark what is hard, revise it later', home: 'Your learning summary', recent: 'Every check you made, newest first',
-               revision: 'Questions whose latest check was wrong — open one, compare, retry', concepts: 'What each concept means and the problems you did' };
+               revision: 'Questions whose latest check was wrong — open one, compare, retry', practice: 'Questions made from your own code — wrong attempts, difficult and mastered clips', concepts: 'What each concept means and the problems you did' };
 
   var state = { lang: '', site: '', view: 'home', recentLimit: 15, openConcept: null, showAllConcepts: false, open: {},
-                expand: { tc: false, sites: false }, vf: { q: '', status: '', site: '', concept: '', sort: 'new' },
+                expand: { tc: false, sites: false }, vf: { q: '', status: '', site: '', concept: '', sort: 'new', kind: 'code' },
                 focusClip: null, review: null, clipOpen: {} };
   var all = [];
   var clips = [];
+  var practiceLog = [];
 
   // ---------------------------------------------------------------- helpers
   function h(tag, cls, text) {
@@ -111,7 +112,11 @@
     var v = parts[0];
     state.view = VIEWS[v] ? v : 'home';
     state.focusClip = v === 'vault' && parts[1] ? decodeURIComponent(parts[1]) : null;
-    if (state.focusClip) { state.vf = { q: '', status: '', site: '', concept: '', sort: state.vf.sort }; state.lang = ''; }
+    if (state.focusClip) {
+      var fc = clips.filter(function (c) { return c.id === state.focusClip; })[0];
+      state.vf = { q: '', status: '', site: '', concept: '', sort: state.vf.sort, kind: fc ? kindTab(fc) : 'code' };
+      state.lang = '';
+    }
     document.querySelectorAll('.side nav a[data-view]').forEach(function (a) {
       var on = a.getAttribute('data-view') === state.view;
       a.classList.toggle('active', on);
@@ -432,8 +437,9 @@
 
     var defs = el('defs', {});
     var grad = el('linearGradient', { id: 'areaC', x1: '0', y1: '0', x2: '0', y2: '1' });
-    grad.appendChild(el('stop', { offset: '0', 'stop-color': '#ffffff', 'stop-opacity': '0.28' }));
-    grad.appendChild(el('stop', { offset: '1', 'stop-color': '#ffffff', 'stop-opacity': '0' }));
+    var green = getComputedStyle(document.documentElement).getPropertyValue('--green').trim() || '#34d399';
+    grad.appendChild(el('stop', { offset: '0', 'stop-color': green, 'stop-opacity': '0.28' }));
+    grad.appendChild(el('stop', { offset: '1', 'stop-color': green, 'stop-opacity': '0' }));
     defs.appendChild(grad);
     svg.appendChild(defs);
     [0, 0.5, 1].forEach(function (f) { var gy = y(max * f); svg.appendChild(el('line', { x1: 0, x2: W, y1: gy, y2: gy, class: 'grid' })); });
@@ -716,8 +722,136 @@
     if ($('vQ') !== document.activeElement) $('vQ').value = vf.q;
   }
 
+  function kindTab(c) { return c.kind === 'note' ? 'notes' : c.kind === 'text' ? 'points' : 'code'; }
+  function q(c) {
+    var w = state.vf.q.trim().toLowerCase();
+    return !w || [c.text, c.notes, c.topic, c.pageTitle].join('\n').toLowerCase().indexOf(w) !== -1;
+  }
+  /** Notes view: your topic notes plus the notes you wrote on saved code / key points, grouped by topic. */
+  function notesView(out) {
+    var items = clips.filter(function (c) { return (c.kind === 'note' || c.notes) && q(c); });
+    if (!items.length) { out.appendChild(h('div', 'empty', state.vf.q ? 'No notes match your search.' : 'No notes yet. On GfG or W3Schools: click the ✎ in the < ⚡ > bar, select text → Note, or click the Codextent icon → ✎.')); return; }
+    groups(items).forEach(function (g) {
+      var sec = topicSection(g);
+      g.items.slice().sort(function (a, b) { return (a.kind === 'note' ? 0 : 1) - (b.kind === 'note' ? 0 : 1) || b.createdAt - a.createdAt; }).forEach(function (c) {
+        var card = h('div', 'notecard');
+        card.setAttribute('data-id', c.id);
+        if (c.kind === 'note') {
+          card.appendChild(h('div', 'nk', 'Topic note · ' + OQ.ui.timeAgo(c.createdAt)));
+          var ta = h('textarea', 'notearea');
+          ta.value = c.text; ta.rows = 3; ta.setAttribute('aria-label', 'Note');
+          var saved = h('span', 'saved', ''), timer = null;
+          ta.addEventListener('input', function () { autoGrow(ta); saved.textContent = 'Saving…'; clearTimeout(timer);
+            timer = setTimeout(function () { V.editClip(c.id, { text: ta.value }).then(function () { saved.textContent = 'Saved ✓'; }); }, 450); });
+          setTimeout(function () { autoGrow(ta); }, 0);
+          card.appendChild(ta);
+          var row = h('div', 'nrow'); row.appendChild(saved); row.appendChild(delBtn(c)); card.appendChild(row);
+        } else {
+          card.appendChild(h('div', 'nk', (c.kind === 'text' ? 'Note on a key point' : 'Note on ' + LANG[c.language].name + ' code') + ' · ' + OQ.ui.timeAgo(c.updatedAt || c.createdAt)));
+          var ref = h('pre', 'clipcode folded ref' + (c.kind === 'text' ? ' prose' : ''), c.text);
+          card.appendChild(ref);
+          card.appendChild(h('p', 'notetext', c.notes));
+          var open = h('button', 'link', 'Open in ' + (c.kind === 'text' ? 'Key points' : 'Code') + ' →'); open.type = 'button';
+          open.addEventListener('click', function () { state.vf.kind = kindTab(c); state.focusClip = c.id; renderVault(); });
+          card.appendChild(open);
+        }
+        sec.appendChild(card);
+      });
+      out.appendChild(sec);
+    });
+  }
+  /** Key points view: text you selected on the page, point by point under each topic. */
+  function pointsView(out) {
+    var items = clips.filter(function (c) { return c.kind === 'text' && q(c); });
+    if (!items.length) { out.appendChild(h('div', 'empty', state.vf.q ? 'No key points match your search.' : 'No key points yet. On GfG or W3Schools, select a sentence and click “Key point”.')); return; }
+    groups(items).forEach(function (g) {
+      var sec = topicSection(g);
+      var ul = h('ul', 'points');
+      g.items.slice().sort(function (a, b) { return a.createdAt - b.createdAt; }).forEach(function (c) {
+        var li = h('li');
+        li.setAttribute('data-id', c.id);
+        li.appendChild(h('span', 'ptext', c.text));
+        if (c.notes) li.appendChild(h('span', 'pnote', c.notes));
+        var acts = h('span', 'pacts');
+        acts.appendChild(statusSeg(c));
+        acts.appendChild(delBtn(c));
+        li.appendChild(acts);
+        ul.appendChild(li);
+        if (state.focusClip === c.id) { li.classList.add('flash'); setTimeout(function () { li.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 30); }
+      });
+      sec.appendChild(ul);
+      out.appendChild(sec);
+    });
+    state.focusClip = null;
+  }
+  function groups(items) {
+    var map = {}, order = [];
+    items.forEach(function (c) {
+      var k = c.topic || c.pageTitle || c.url || 'Other';
+      if (!map[k]) { map[k] = { topic: k, url: c.url, site: c.site, last: 0, items: [] }; order.push(k); }
+      map[k].items.push(c);
+      map[k].last = Math.max(map[k].last, c.updatedAt || c.createdAt);
+    });
+    return order.map(function (k) { return map[k]; }).sort(function (a, b) { return b.last - a.last; });
+  }
+  function topicSection(g) {
+    var sec = h('section', 'topicsec');
+    var hd = h('div', 'topichead');
+    hd.appendChild(h('h3', null, g.topic));
+    var meta = h('span', 'att-sub');
+    meta.appendChild(h('span', 'sname', (SITE[g.site] && SITE[g.site].name) || g.site || 'Website'));
+    meta.appendChild(h('span', 'dot', '•'));
+    meta.appendChild(h('span', null, g.items.length + (g.items.length === 1 ? ' item' : ' items')));
+    hd.appendChild(meta);
+    var url = OQ.ui.safeUrl(g.url);
+    if (url) { var a = h('a', 'more', 'Open page ↗'); a.href = url; a.target = '_blank'; a.rel = 'noopener noreferrer'; hd.appendChild(a); }
+    sec.appendChild(hd);
+    return sec;
+  }
+  function delBtn(c) {
+    var del = h('button', 'btn small ghostdanger', 'Delete');
+    del.type = 'button';
+    del.addEventListener('click', function () {
+      if (del.dataset.armed) { V.deleteClip(c.id); return; }
+      del.dataset.armed = '1'; del.textContent = 'Sure? Delete';
+      setTimeout(function () { delete del.dataset.armed; del.textContent = 'Delete'; }, 3000);
+    });
+    return del;
+  }
+  function renderKinds() {
+    var box = $('vKinds'); box.textContent = '';
+    var counts = {
+      code: clips.filter(function (c) { return c.kind === 'code'; }).length,
+      notes: clips.filter(function (c) { return c.kind === 'note' || c.notes; }).length,
+      points: clips.filter(function (c) { return c.kind === 'text'; }).length
+    };
+    [['code', 'Code'], ['notes', 'My notes'], ['points', 'Key points']].forEach(function (k) {
+      var b = h('button', 'ltab');
+      b.type = 'button';
+      b.setAttribute('role', 'tab');
+      b.setAttribute('data-kind', k[0]);
+      b.setAttribute('aria-selected', String(state.vf.kind === k[0]));
+      b.appendChild(document.createTextNode(k[1]));
+      b.appendChild(h('span', 'kcount', String(counts[k[0]])));
+      b.addEventListener('click', function () { state.vf.kind = k[0]; state.review = null; renderVault(); });
+      box.appendChild(b);
+    });
+  }
+
   function renderVault() {
-    var list = vaultList();
+    renderKinds();
+    var kind = state.vf.kind || 'code';
+    document.getElementById('view-vault').setAttribute('data-kind', kind);
+    if (kind !== 'code') {
+      $('vStats').textContent = ''; $('vRevisit').textContent = ''; $('vReview').classList.add('hidden');
+      if ($('vQ') !== document.activeElement) $('vQ').value = state.vf.q;
+      var o = $('clipList'); o.textContent = ''; o.classList.remove('hidden');
+      o.classList.toggle('stack', true);
+      if (kind === 'notes') notesView(o); else pointsView(o);
+      return;
+    }
+    $('clipList').classList.remove('stack');
+    var list = vaultList().filter(function (c) { return c.kind === 'code'; });
     var vs = V.vaultStats(list);
     renderVaultTools(list);
 
@@ -763,6 +897,7 @@
     var out = $('clipList'); out.textContent = '';
     out.classList.toggle('hidden', !!state.review);
     if (!clips.length) { out.appendChild(vaultEmpty()); return; }
+    if (!list.length) { out.appendChild(h('div', 'empty', 'No saved code yet. Select code on GfG or W3Schools → right-click → Save to My Revision Vault, or press the bookmark in the < ⚡ > bar.')); return; }
     var f = Object.assign({}, state.vf, { due: state.vf.status === 'due', status: state.vf.status === 'due' ? '' : state.vf.status,
       conceptNames: function (c) { return (c.concepts || []).map(function (id) { return conceptName(c.language, id); }); } });
     var shown = V.filterClips(list, f);
@@ -902,6 +1037,12 @@
         openRetry(card, { code: run.code, language: lang, stdin: '', url: c.url, pageTitle: c.pageTitle, site: c.site, wrapped: run.wrapped });
       });
       acts.appendChild(pr);
+      if (c.status === 'mastered' && PRACTICE_LANGS.indexOf(lang) !== -1) {
+        var prove = h('button', 'btn small', 'Prove it'); prove.type = 'button';
+        prove.title = 'Two quick questions on this code';
+        prove.addEventListener('click', function () { practiceOn([c.id]); });
+        acts.appendChild(prove);
+      }
     }
     var cp = h('button', 'btn small', 'Copy');
     cp.type = 'button';
@@ -974,6 +1115,12 @@
       done.appendChild(h('h2', null, 'Revision done'));
       done.appendChild(h('p', null, r.counts.mastered + ' mastered · ' + r.counts.learning + ' still learning · ' + r.counts.difficult + ' still difficult' + (r.counts.skipped ? ' · ' + r.counts.skipped + ' skipped' : '') +
         '. Difficult clips come back tomorrow, learning ones in 3 days.'));
+      var quizIds = r.ids.filter(function (id) { var c = clips.filter(function (x) { return x.id === id; })[0]; return c && c.kind === 'code'; });
+      if (quizIds.length) {
+        var qb = h('button', 'btn primary', 'Quiz me on these'); qb.type = 'button';
+        qb.addEventListener('click', function () { state.review = null; practiceOn(quizIds); });
+        done.appendChild(qb);
+      }
       box.appendChild(done);
       return;
     }
@@ -1024,6 +1171,219 @@
   $('vConcept').addEventListener('change', function () { state.vf.concept = this.value; renderVault(); });
   $('vSort').addEventListener('change', function () { state.vf.sort = this.value; renderVault(); });
 
+  // ---------------------------------------------------------------- Practice (questions from your own code)
+  // Sources: wrong attempts · Difficult clips · Mastered clips ("prove it"). C, C++, Java, Python.
+  // Questions: what-if changes of the code (the background RUNS the changed program) + concept-bank checks.
+  var PRACTICE_LANGS = ['c', 'cpp', 'java', 'python'];
+  var SOURCES = [
+    { id: 'wrong', name: 'Wrong attempts', hint: 'Code you predicted wrong' },
+    { id: 'difficult', name: 'Difficult clips', hint: 'Code you marked Difficult' },
+    { id: 'mastered', name: 'Mastered clips', hint: 'Prove you still know it' }
+  ];
+  state.practice = { source: 'wrong', preset: null, items: null, qs: null, i: 0, score: 0, loading: null, answers: [] };
+
+  function practiceItems(source) {
+    var langOk = function (l) { return PRACTICE_LANGS.indexOf(l) !== -1 && (!state.lang || state.lang === l); };
+    var out = [], seen = {};
+    function push(it) { var k = it.language + it.code; if (seen[k] || !langOk(it.language)) return; seen[k] = true; out.push(it); }
+    if (source === 'wrong') {
+      OQ.stats.computeStats(all).needsRevision.forEach(function (a) {
+        push({ code: a.code, stdin: a.stdin || '', language: OQ.stats.languageOf(a), title: topicOf(a), site: OQ.stats.siteOf(a), from: 'Wrong attempt' });
+      });
+    } else {
+      clips.filter(function (c) { return c.kind === 'code' && c.status === source; }).sort(function (a, b) { return (a.reviewedAt || 0) - (b.reviewedAt || 0); }).forEach(function (c) {
+        var run = runnable(c);
+        if (run) push({ code: run.code, stdin: '', language: c.language, title: clipTitle(c), site: c.site, from: source === 'mastered' ? 'Mastered clip' : 'Difficult clip', clipId: c.id });
+      });
+    }
+    return out;
+  }
+  function presetItems(ids) {
+    return clips.filter(function (c) { return ids.indexOf(c.id) !== -1 && c.kind === 'code' && PRACTICE_LANGS.indexOf(c.language) !== -1; }).map(function (c) {
+      var run = runnable(c);
+      return run && { code: run.code, stdin: '', language: c.language, title: clipTitle(c), site: c.site, from: c.status === 'mastered' ? 'Mastered clip' : c.status === 'difficult' ? 'Difficult clip' : 'Saved clip', clipId: c.id };
+    }).filter(Boolean);
+  }
+  /** Open Practice on chosen clips (from Revision "Quiz me on these" or a Mastered clip's "Prove it"). */
+  function practiceOn(ids) {
+    state.practice.preset = ids;
+    state.practice.qs = null;
+    if (location.hash !== '#practice') location.hash = '#practice'; else renderPractice();
+    setTimeout(startPractice, 0);
+  }
+
+  function renderPractice() {
+    var P = state.practice, box = $('practiceBody');
+    box.textContent = '';
+    if (P.loading) {
+      var l = h('div', 'card pq-load');
+      l.appendChild(h('span', 'spin'));
+      l.appendChild(h('div', null, 'Making questions… ' + P.loading));
+      l.appendChild(h('p', 'muted', 'Each “what if” question runs a changed copy of your code, so every answer is real.'));
+      box.appendChild(l);
+      return;
+    }
+    if (P.qs && P.i < P.qs.length) { box.appendChild(questionCard(P.qs[P.i])); return; }
+    if (P.qs) { box.appendChild(practiceSummary()); return; }
+
+    // start screen: pick a source
+    var intro = h('div', 'card pq-intro');
+    intro.appendChild(h('h2', null, 'Practice with questions from your own code'));
+    intro.appendChild(h('p', 'muted', 'Pick where the code comes from. You get “what if” questions (a small change to the code, run for real) and concept checks. C, C++, Java and Python.'));
+    var row = h('div', 'pq-sources');
+    SOURCES.forEach(function (src) {
+      var n = practiceItems(src.id).length;
+      var b = h('button', 'pq-src hov');
+      b.type = 'button';
+      b.setAttribute('aria-pressed', String(P.source === src.id && !P.preset));
+      b.setAttribute('data-src', src.id);
+      b.appendChild(h('b', null, String(n)));
+      b.appendChild(h('span', null, src.name));
+      b.appendChild(h('small', null, src.hint));
+      b.disabled = !n;
+      b.addEventListener('click', function () { P.source = src.id; P.preset = null; renderPractice(); });
+      row.appendChild(b);
+    });
+    intro.appendChild(row);
+    var go = h('button', 'btn primary', 'Start practice');
+    go.type = 'button'; go.id = 'startPractice';
+    go.disabled = !practiceItems(P.source).length;
+    go.addEventListener('click', startPractice);
+    var foot = h('div', 'pq-go');
+    foot.appendChild(go);
+    foot.appendChild(h('span', 'muted', go.disabled ? 'Nothing here yet for this source' + (state.lang ? ' in ' + LANG[state.lang].name : '') + '.' : 'Up to 3 programs · about 6–8 questions'));
+    intro.appendChild(foot);
+    box.appendChild(intro);
+    box.appendChild(practiceHistory());
+  }
+
+  function practiceHistory() {
+    var wrap = h('div', 'card pq-hist');
+    wrap.appendChild(h('h3', null, 'Your practice so far'));
+    var log = (practiceLog || []).filter(function (x) { return x.where === 'dashboard' || !x.where; });
+    if (!log.length) { wrap.appendChild(h('p', 'muted', 'No answers yet. Your score by concept will show here.')); return wrap; }
+    var right = log.filter(function (x) { return x.correct; }).length;
+    wrap.appendChild(h('p', null, right + ' of ' + log.length + ' answered correctly (' + Math.round(right / log.length * 100) + '%).'));
+    return wrap;
+  }
+
+  async function startPractice() {
+    var P = state.practice;
+    // try up to 6 programs and keep the first 3 that give questions (some code has nothing to change)
+    var items = (P.preset ? presetItems(P.preset) : practiceItems(P.source)).slice(0, 6);
+    if (!items.length) { P.preset = null; renderPractice(); return; }
+    P.items = items; P.qs = null; P.i = 0; P.score = 0; P.answers = [];
+    var qs = [], used = 0;
+    for (var k = 0; k < items.length && used < 3; k++) {
+      P.loading = 'program ' + (used + 1) + ' of ' + Math.min(3, items.length);
+      renderPractice();
+      var it = items[k];
+      var r = await new Promise(function (res) {
+        try { chrome.runtime.sendMessage({ type: 'QUIZ_BUILD', language: it.language, code: it.code, stdin: it.stdin, maxWhatIf: 2, maxConcept: 1 }, function (x) { res(chrome.runtime.lastError ? null : x); }); }
+        catch (e) { res(null); }
+      });
+      if (r && r.ok && r.questions.length) { used++; r.questions.forEach(function (q) { qs.push(Object.assign({}, q, { item: it, language: q.language || it.language })); }); }
+    }
+    P.loading = null;
+    // whatif questions first per program, concept checks spread in; at most 8
+    P.qs = qs.slice(0, 8);
+    if (!P.qs.length) { P.qs = null; P.preset = null; renderPractice(); $('practiceBody').prepend(h('div', 'empty', 'Could not make questions from this code (it may not run as-is). Try another source.')); return; }
+    renderPractice();
+  }
+
+  function questionCard(q) {
+    var P = state.practice;
+    var card = h('div', 'card pq-card');
+    var top = h('div', 'pq-top');
+    top.appendChild(h('span', 'pq-kind ' + q.kind, q.kind === 'whatif' ? 'What if' : 'Concept check'));
+    top.appendChild(h('span', 'pq-lang', LANG[q.language] ? LANG[q.language].name : ''));
+    var prog = h('div', 'pq-prog'); var f = h('i'); f.style.width = Math.round(P.i / P.qs.length * 100) + '%'; prog.appendChild(f);
+    top.appendChild(prog);
+    top.appendChild(h('span', 'muted', (P.i + 1) + ' / ' + P.qs.length));
+    card.appendChild(top);
+    if (q.item) card.appendChild(h('div', 'pq-from', 'From: ' + q.item.title + ' · ' + ((SITE[q.item.site] && SITE[q.item.site].name) || q.item.site || '') + ' · ' + q.item.from));
+    card.appendChild(h('h2', 'pq-prompt', q.prompt));
+    if (q.kind === 'whatif') {
+      var ch = h('div', 'pq-change');
+      ch.appendChild(h('span', 'muted', 'Line ' + q.line));
+      ch.appendChild(h('code', 'old', q.before));
+      ch.appendChild(h('span', 'arrow', '→'));
+      ch.appendChild(h('code', 'new', q.after));
+      card.appendChild(ch);
+      var full = h('details', 'pq-code');
+      full.appendChild(h('summary', null, 'Show the whole program'));
+      full.appendChild(h('pre', null, q.item ? q.item.code : ''));
+      card.appendChild(full);
+    } else {
+      card.appendChild(h('pre', 'pq-snip', q.snippet));
+    }
+    var opts = h('div', 'pq-opts');
+    var why = h('div', 'pq-why');
+    var next = h('button', 'btn primary pq-next', P.i + 1 < P.qs.length ? 'Next question' : 'See my score');
+    next.type = 'button'; next.hidden = true;
+    q.options.forEach(function (o, k) {
+      var b = h('button', 'pq-opt');
+      b.type = 'button';
+      b.appendChild(h('span', 'key', String.fromCharCode(65 + k)));
+      b.appendChild(h('pre', null, o === '' ? '(nothing)' : o));
+      b.addEventListener('click', function () {
+        if (opts.classList.contains('answered')) return;
+        opts.classList.add('answered');
+        var ok = o === q.answer;
+        if (ok) P.score++;
+        P.answers.push({ q: q, ok: ok });
+        Array.prototype.forEach.call(opts.children, function (x, idx) {
+          if (q.options[idx] === q.answer) x.classList.add('right'); else if (x === b) x.classList.add('wrong');
+        });
+        why.textContent = '';
+        why.appendChild(sym(ok ? 'correct' : 'incorrect', true));
+        var t = h('div'); t.appendChild(h('b', null, ok ? 'Correct. ' : 'Not quite. ')); t.appendChild(document.createTextNode(q.why)); why.appendChild(t);
+        why.classList.add('show');
+        next.hidden = false; next.focus();
+        try { chrome.runtime.sendMessage({ type: 'QUIZ_ANSWER', qid: q.id, kind: q.kind, concept: q.concept || '', correct: ok, url: '', pageTitle: q.item ? q.item.title : '', where: 'dashboard' }); } catch (e) { /* ignore */ }
+        // a wrong answer on a saved clip means it is not mastered yet
+        if (!ok && q.item && q.item.clipId) V.editClip(q.item.clipId, { status: 'difficult' });
+      });
+      opts.appendChild(b);
+    });
+    card.appendChild(opts);
+    card.appendChild(why);
+    next.addEventListener('click', function () { P.i++; renderPractice(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    card.appendChild(next);
+    var quit = h('button', 'link pq-quit', 'End practice'); quit.type = 'button';
+    quit.addEventListener('click', function () { P.qs = null; P.preset = null; renderPractice(); });
+    card.appendChild(quit);
+    return card;
+  }
+
+  function practiceSummary() {
+    var P = state.practice;
+    var card = h('div', 'card pq-end');
+    var head = h('div', 'pq-score');
+    head.appendChild(sym(P.score === P.qs.length ? 'correct' : 'incorrect', true));
+    var t = h('div');
+    t.appendChild(h('h2', null, 'Score ' + P.score + ' / ' + P.qs.length));
+    t.appendChild(h('p', 'muted', P.score === P.qs.length ? 'All correct. Your tracing is solid.' : 'Wrong answers moved those clips to Difficult, so they come back in your revision.'));
+    head.appendChild(t);
+    card.appendChild(head);
+    var ul = h('ul', 'pq-list');
+    P.answers.forEach(function (a) {
+      var li = h('li');
+      li.appendChild(sym(a.ok ? 'correct' : 'incorrect'));
+      li.appendChild(h('span', null, a.q.prompt));
+      li.appendChild(h('span', 'muted', a.q.item ? a.q.item.title : ''));
+      ul.appendChild(li);
+    });
+    card.appendChild(ul);
+    var row = h('div', 'pq-go');
+    var again = h('button', 'btn primary', 'Practice again'); again.type = 'button';
+    again.addEventListener('click', function () { P.qs = null; P.preset = null; renderPractice(); });
+    var vault = h('a', 'btn', 'Open Revision Vault'); vault.href = '#vault';
+    row.appendChild(again); row.appendChild(vault);
+    card.appendChild(row);
+    return card;
+  }
+
   // ---------------------------------------------------------------- render
   function renderNav() {
     var list = bySite(byLang(all));
@@ -1043,12 +1403,16 @@
     else if (state.view === 'revision') renderRevision();
     else if (state.view === 'concepts') renderConcepts();
     else if (state.view === 'vault') renderVault();
+    else if (state.view === 'practice') renderPractice();
   }
 
   async function refresh() {
-    var data = await chrome.storage.local.get(['attempts', 'vault']);
+    var data = await chrome.storage.local.get(['attempts', 'vault', 'quizLog']);
     all = data.attempts || [];
     clips = data.vault || [];
+    practiceLog = data.quizLog || [];
+    // keep a running quiz on screen while answers are being saved
+    if (state.view === 'practice' && (state.practice.qs || state.practice.loading)) { renderNav(); return; }
     // don't redraw the vault under the learner's cursor while they type notes
     var ae = document.activeElement;
     if (state.view === 'vault' && ae && ae.tagName === 'TEXTAREA' && ae.closest('#view-vault')) { renderNav(); return; }
@@ -1064,14 +1428,15 @@
     refresh();
   });
   chrome.storage.onChanged.addListener(function (changes, area) {
-    if (area === 'local' && (changes.attempts || changes.vault)) refresh();
+    if (area === 'local' && (changes.attempts || changes.vault || changes.quizLog)) refresh();
   });
   window.addEventListener('hashchange', route);
 
   load();
-  chrome.storage.local.get(['attempts', 'vault']).then(function (data) {
+  chrome.storage.local.get(['attempts', 'vault', 'quizLog']).then(function (data) {
     all = data.attempts || [];
     clips = data.vault || [];
+    practiceLog = data.quizLog || [];
     route();
   });
 })();
