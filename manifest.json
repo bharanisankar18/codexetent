@@ -2,8 +2,8 @@
   "manifest_version": 3,
   "name": "Codextent – Predict Code Output",
   "short_name": "Codextent",
-  "version": "0.14.0",
-  "description": "Predict the output of C, C++, Java, Python and MySQL examples on learning sites, save notes and key points, and mark LeetCode problems to solve later.",
+  "version": "0.15.0",
+  "description": "Predict the output of C, C++, Java, Python and MySQL examples on learning sites, save notes, mark LeetCode problems, and insert C++ templates on CodeChef and LeetCode.",
   "icons": {
     "16": "icons/icon16.png",
     "32": "icons/icon32.png",
@@ -73,9 +73,43 @@
       ],
       "js": [
         "src/lib/leetcode.js",
-        "src/content/leetcode.js"
+        "src/content/leetcode.js",
+        "src/lib/templates.js",
+        "src/content/templates-ui.js"
       ],
       "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://www.codechef.com/*",
+        "https://codechef.com/*"
+      ],
+      "js": [
+        "src/lib/templates.js",
+        "src/content/templates-ui.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://leetcode.com/*"
+      ],
+      "js": [
+        "src/content/editors/leetcode-editor.js"
+      ],
+      "run_at": "document_idle",
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "https://www.codechef.com/*",
+        "https://codechef.com/*"
+      ],
+      "js": [
+        "src/content/editors/codechef-editor.js"
+      ],
+      "run_at": "document_idle",
+      "world": "MAIN"
     }
   ],
   "content_security_policy": {

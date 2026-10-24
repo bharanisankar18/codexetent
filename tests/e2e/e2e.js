@@ -809,6 +809,145 @@ async function step(name, fn) {
       await d.close();
     });
 
+    await step('Templates: real Ace on CodeChef (empty → whole program, else snippet at cursor), real Monaco on LeetCode (snippet), Alt+Shift+T, favorites, dashboard CRUD', async () => {
+      const NM = path.join(ROOT, 'node_modules');
+      const serveFile = (route, file) => {
+        const ext = path.extname(file);
+        route.fulfill({ status: 200, contentType: ext === '.css' ? 'text/css' : ext === '.ttf' ? 'font/ttf' : 'application/javascript', body: fs.readFileSync(file) });
+      };
+      const ccPage = `<!doctype html><html><head><title>Sum of N - CodeChef</title><script src="/__cx/ace/ace.js"></script></head>
+        <body style="margin:0;font-family:sans-serif;background:#fff"><div style="padding:12px">Problem: read t, then n and n numbers.</div>
+        <div class="_ideEditorWrapper_x" style="position:relative;height:420px;margin:0 12px"><div id="submit-ide-v2" style="position:absolute;inset:0"></div></div>
+        <script>ace.config.set('basePath','/__cx/ace/');var ed=ace.edit('submit-ide-v2');ed.session.setMode('ace/mode/c_cpp');ed.setValue('//write code here',-1);</script></body></html>`;
+      await ctx.route(/https:\/\/www\.codechef\.com\/.*/, (route) => {
+        const u = new URL(route.request().url());
+        if (u.pathname.startsWith('/__cx/ace/')) return serveFile(route, path.join(NM, 'ace-builds', 'src-min-noconflict', u.pathname.slice('/__cx/ace/'.length)));
+        route.fulfill({ status: 200, contentType: 'text/html', body: ccPage });
+      });
+      const cc = await ctx.newPage();
+      cc.on('pageerror', (e) => pageErrors.push('codechef: ' + e));
+      await cc.goto('https://www.codechef.com/problems/SUMN');
+      const ccBtn = cc.locator('[data-codextent-templates] >> .btn');
+      await ccBtn.waitFor({ timeout: 10000 });
+      assert.equal(await cc.locator('[data-codextent-templates]').getAttribute('data-float'), 'editor');
+      await ccBtn.click();
+      const pk = cc.locator('[data-codextent-templates] >> .picker.show');
+      await pk.waitFor();
+      await pk.locator('.q').fill('sliding');
+      assert.match(await pk.locator('.item[aria-selected="true"]').textContent(), /Sliding window/i);
+      assert.match(await pk.locator('.desc').textContent(), /Whole program/);
+      await cc.screenshot({ path: path.join(SHOTS, 'templates-codechef-picker.png') });
+      await pk.locator('.q').press('Enter');
+      await cc.waitForFunction(() => /while \(t--\) solve\(\);/.test(ace.edit('submit-ide-v2').getValue()));
+      const full = await cc.evaluate(() => ace.edit('submit-ide-v2').getValue());
+      assert.match(full, /^#include <bits\/stdc\+\+\.h>/);
+      assert.doesNotMatch(full, /write code here/);
+      // non-empty editor → snippet at the cursor, via the keyboard shortcut
+      await cc.evaluate(() => { const e = ace.edit('submit-ide-v2'); e.setValue('int main() {\n}\n', -1); e.moveCursorTo(0, 0); e.focus(); });
+      await cc.keyboard.press('Alt+Shift+T');
+      await pk.waitFor();
+      await pk.locator('.q').fill('dsu');
+      assert.match(await pk.locator('.desc').textContent(), /Snippet at the cursor/);
+      await pk.locator('.go').click();
+      await cc.waitForFunction(() => /^struct DSU/.test(ace.edit('submit-ide-v2').getValue()));
+      assert.match(await cc.evaluate(() => ace.edit('submit-ide-v2').getValue()), /int main\(\) \{\n\}\n$/);
+      // "Whole program" on a non-empty editor asks first
+      await cc.keyboard.press('Alt+Shift+T');
+      await pk.locator('.seg button', { hasText: 'Whole program' }).click();
+      await pk.locator('.go').click();
+      assert.match(await pk.locator('.go').textContent(), /Replace my code\?/);
+      await pk.locator('.x').click();
+      // switch the editor to Java → warning shown
+      await cc.evaluate(() => ace.edit('submit-ide-v2').session.setMode('ace/mode/java'));
+      await cc.waitForFunction(() => ace.edit('submit-ide-v2').session.getMode().$id === 'ace/mode/java');
+      await cc.keyboard.press('Alt+Shift+T');
+      assert.match(await pk.locator('.note').textContent(), /set to Java/);
+      // favorite → first in the list and stored
+      await pk.locator('.q').fill('');
+      await pk.locator('.item', { hasText: 'Sieve' }).locator('.star').click();
+      await cc.waitForFunction(() => true);
+      await pk.locator('.item.item').first().waitFor();
+      await cc.waitForTimeout(150);
+      assert.match(await pk.locator('.item').first().textContent(), /Sieve/);
+      await cc.keyboard.press('Escape');
+      assert.ok(!(await pk.isVisible()));
+      await cc.close();
+
+      // LeetCode with the real Monaco editor
+      await ctx.unroute(/https:\/\/leetcode\.com\/.*/);
+      const lcPage = `<!doctype html><html class="dark"><head><title>Two Sum - LeetCode</title></head><body style="margin:0;background:#1a1a1a;color:#eee;font-family:sans-serif">
+        <div id="editor"><div class="flex items-center" style="display:flex;gap:6px;padding:6px"><button>C++</button><button>Auto</button></div>
+        <div id="mon" style="height:420px"></div></div>
+        <script>window.MonacoEnvironment={getWorkerUrl:function(){return 'data:text/javascript,'}};</script>
+        <script src="/__cx/monaco/vs/loader.js"></script>
+        <script>require.config({paths:{vs:'/__cx/monaco/vs'}});require(['vs/editor/editor.main'],function(){window.mon=monaco.editor.create(document.getElementById('mon'),{value:'class Solution {\\npublic:\\n    vector<int> twoSum(vector<int>& nums, int target) {\\n        \\n    }\\n};\\n',language:'cpp'});window.monReady=true;});</script></body></html>`;
+      await ctx.route(/https:\/\/leetcode\.com\/.*/, (route) => {
+        const u = new URL(route.request().url());
+        if (u.pathname.startsWith('/__cx/monaco/')) return serveFile(route, path.join(NM, 'monaco-editor', 'min', u.pathname.slice('/__cx/monaco/'.length)));
+        if (u.pathname.startsWith('/graphql')) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ data: { question: { questionFrontendId: '1', title: 'Two Sum', difficulty: 'Easy', topicTags: [{ name: 'Array', slug: 'array' }] } } }) });
+        route.fulfill({ status: 200, contentType: 'text/html', body: lcPage });
+      });
+      const lc = await ctx.newPage();
+      lc.on('pageerror', (e) => pageErrors.push('leetcode-templates: ' + e));
+      await lc.goto('https://leetcode.com/problems/two-sum/description/');
+      await lc.waitForFunction(() => window.monReady, null, { timeout: 20000 });
+      const lcBtn = lc.locator('[data-codextent-templates] >> .btn');
+      await lcBtn.waitFor({ timeout: 10000 });
+      assert.equal(await lc.locator('[data-codextent-templates]').evaluate((h) => h.previousElementSibling.textContent), 'C++');
+      await lc.evaluate(() => { window.mon.setPosition({ lineNumber: 3, column: 1 }); window.mon.focus(); });
+      await lcBtn.click();
+      const lp = lc.locator('[data-codextent-templates] >> .picker.show');
+      await lp.waitFor();
+      assert.equal(await lp.locator('.item', { hasText: 'Contest base' }).count(), 0, 'templates without helpers are not offered on LeetCode');
+      await lp.locator('.q').fill('gcd');
+      await lc.screenshot({ path: path.join(SHOTS, 'templates-leetcode-picker.png') });
+      await lp.locator('.q').press('Enter');
+      await lc.waitForFunction(() => /static constexpr ll MOD/.test(window.mon.getValue()));
+      const v = await lc.evaluate(() => window.mon.getValue());
+      assert.match(v, /^class Solution \{\npublic:[\s\S]*MOD[\s\S]*twoSum/);
+      assert.doesNotMatch(v, /int main/);
+      await lc.evaluate(() => window.mon.trigger('k', 'undo'));
+      assert.doesNotMatch(await lc.evaluate(() => window.mon.getValue()), /MOD/, 'one Ctrl+Z undoes the insert');
+      await lc.close();
+
+      // dashboard: Templates view
+      const d = await ctx.newPage();
+      d.on('pageerror', (e) => pageErrors.push('templates-dashboard: ' + e));
+      await d.setViewportSize({ width: 1280, height: 900 });
+      await d.goto(`chrome-extension://${extId}/src/dashboard/dashboard.html#templates`);
+      await d.locator('.tcard').first().waitFor();
+      assert.equal(await d.locator('#viewTitle').textContent(), 'Templates');
+      assert.match(await d.locator('.tcard').first().textContent(), /Sieve/, 'favorite first');
+      await d.locator('#tQ').fill('binary search');
+      await d.waitForFunction(() => document.querySelectorAll('.tcard').length === 2, null, { timeout: 3000 });
+      await d.locator('#tQ').fill('');
+      await d.locator('.btn', { hasText: '+ New template' }).click();
+      await d.locator('.tform input').first().fill('Fenwick tree');
+      await d.locator('.tform input').nth(1).fill('range query, bit');
+      await d.locator('.tform textarea').first().fill('struct BIT {\n    int n; vector<long long> t;\n    BIT(int n) : n(n), t(n + 1) {}\n};');
+      await d.locator('.tform textarea').nth(1).fill('int n; cin >> n;\nBIT b(n);\ncout << n << "\\n";');
+      assert.match(await d.locator('.tprev').textContent(), /struct BIT[\s\S]*void solve\(\)[\s\S]*BIT b\(n\)/);
+      await d.screenshot({ path: path.join(SHOTS, 'templates-dashboard-form.png'), fullPage: true });
+      await d.locator('.tform .btn', { hasText: 'Save' }).click();
+      await d.locator('.tcard', { hasText: 'Fenwick tree' }).waitFor();
+      await d.locator('.tcard', { hasText: 'Fenwick tree' }).locator('.btn', { hasText: 'Edit' }).click();
+      await d.locator('.tform input').first().fill('Fenwick tree (BIT)');
+      await d.locator('.tform .btn', { hasText: 'Save' }).click();
+      await d.locator('.tcard', { hasText: 'Fenwick tree (BIT)' }).waitFor();
+      const stored = await sw.evaluate(async () => (await chrome.storage.local.get('templates')).templates);
+      assert.equal(stored.custom.length, 1);
+      assert.equal(stored.custom[0].name, 'Fenwick tree (BIT)');
+      d.on('dialog', (dlg) => dlg.accept());
+      await d.locator('.tcard', { hasText: 'Sieve' }).locator('.btn', { hasText: 'Hide' }).click();
+      await d.locator('.btn', { hasText: 'Restore built-ins (1)' }).waitFor();
+      await d.locator('.tcard', { hasText: 'Fenwick tree (BIT)' }).locator('.btn', { hasText: 'Delete' }).click();
+      await d.waitForFunction(() => !document.body.textContent.includes('Fenwick tree (BIT)'));
+      await d.locator('.btn', { hasText: 'Restore built-ins (1)' }).click();
+      await d.locator('.tcard', { hasText: 'Sieve' }).waitFor();
+      await d.screenshot({ path: path.join(SHOTS, 'templates-dashboard.png'), fullPage: true });
+      await d.close();
+    });
+
     await step('no JavaScript errors on any page', async () => {
       assert.deepEqual(pageErrors, []);
     });

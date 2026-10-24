@@ -48,9 +48,10 @@
   var SITE = {}; SITES.forEach(function (s) { SITE[s.id] = s; });
   var SYM = { correct: ['✓', 'ok', 'Correct'], incorrect: ['✗', 'bad', 'Wrong'], compile_error: ['!', 'warn', 'Compile error'],
               runtime_error: ['!', 'warn', 'Runtime error'], timeout: ['⏱', 'warn', 'Timeout'], error: ['!', 'warn', 'Runner error'] };
-  var VIEWS = { vault: 'My Revision Vault', home: 'My Learning Hub', recent: 'Recent attempts', revision: 'Needs revision', practice: 'Practice', concepts: 'Concepts' };
+  var VIEWS = { vault: 'My Revision Vault', home: 'My Learning Hub', recent: 'Recent attempts', revision: 'Needs revision', practice: 'Practice', concepts: 'Concepts', templates: 'Templates' };
   var SUBS = { vault: 'Code you clipped from learning sites — add notes, mark what is hard, revise it later', home: 'Your learning summary', recent: 'Every check you made, newest first',
-               revision: 'Questions whose latest check was wrong — open one, compare, retry', practice: 'Questions made from your own code — wrong attempts, difficult and mastered clips', concepts: 'What each concept means and the problems you did' };
+               revision: 'Questions whose latest check was wrong — open one, compare, retry', practice: 'Questions made from your own code — wrong attempts, difficult and mastered clips', concepts: 'What each concept means and the problems you did',
+               templates: 'Ready C++ code for CodeChef and LeetCode — insert with { } Templates or Alt+Shift+T' };
 
   var state = { lang: '', site: '', view: 'home', recentLimit: 15, openConcept: null, showAllConcepts: false, open: {},
                 expand: { tc: false, sites: false }, vf: { q: '', status: '', site: '', concept: '', sort: 'new', kind: 'code' },
@@ -127,7 +128,8 @@
     });
     Object.keys(VIEWS).forEach(function (k) { $('view-' + k).classList.toggle('hidden', k !== state.view); });
     $('viewTitle').textContent = VIEWS[state.view];
-    $('viewSub').textContent = SUBS[state.view] + (state.lang ? ' · ' + LANG[state.lang].name : '');
+    $('langTabs').classList.toggle('hidden', state.view === 'templates');
+    $('viewSub').textContent = SUBS[state.view] + (state.lang && state.view !== 'templates' ? ' · ' + LANG[state.lang].name : '');
     render();
   }
 
@@ -1493,6 +1495,7 @@
     else if (state.view === 'concepts') renderConcepts();
     else if (state.view === 'vault') renderVault();
     else if (state.view === 'practice') renderPractice();
+    else if (state.view === 'templates') OQ.templatesView.render($('templateBody'));
   }
 
   async function refresh() {
@@ -1519,6 +1522,7 @@
   chrome.storage.onChanged.addListener(function (changes, area) {
     if (area === 'sync' || (area === 'local' && changes[LC.DONE_KEY])) loadLeetcode();
     if (area === 'local' && (changes.attempts || changes.vault || changes.quizLog)) refresh();
+    if (area === 'local' && changes[OQ.templates.KEY] && state.view === 'templates' && !document.querySelector('.tform')) OQ.templatesView.render();
   });
   window.addEventListener('hashchange', route);
 
