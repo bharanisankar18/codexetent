@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Codextent Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400..800&family=Geist+Mono:wght@400..600&display=swap">
+<style>
+html,body{margin:0;height:100%;background:#0B0B0E;overflow:hidden}
+#stage{position:absolute;left:50%;top:50%}
+.stage *{box-sizing:border-box;margin:0}
+.stage p,.stage h2,.stage h3{margin:0}
+.wires svg{display:block;width:100%;height:100%}
+.w{fill:none;stroke-width:3;stroke-dasharray:12 10;animation:f .9s linear infinite}.g{stroke:#34D399}.b{stroke:#6EA8FF}.a{stroke:#FBBF24}.n{stroke:#8E8E96}@keyframes f{to{stroke-dashoffset:-22}}@media (prefers-reduced-motion:reduce){.w{animation:none}}
+</style></head><body>
+<div class="stage" id="stage" style="position:relative;width:1920px;height:1080px;box-sizing:border-box;background:#0B0B0E;color:#F5F5F7;font-family:'Geist', Arial, sans-serif;padding:128px">
+<div style="position:absolute;left:128px;top:404px;width:1664px;height:606px;border:2px dashed #3A3A44;border-radius:28px"></div>
+<div style="position:absolute;left:152px;top:452px;width:500px;height:538px;border:1px solid #2E2E36;border-radius:22px;background:#101014"></div>
+<div style="position:absolute;left:712px;top:452px;width:500px;height:538px;border:1px solid #2E2E36;border-radius:22px;background:#101014"></div>
+<p style="position:absolute;left:1240px;top:414px;width:528px;font-family:'Geist Mono', 'Courier New', monospace;font-size:24px;color:#8E8E96;text-align:right">Codextent · Chrome extension (MV3)</p>
+<p style="position:absolute;left:176px;top:948px;width:460px;font-family:'Geist Mono', 'Courier New', monospace;font-size:24px;color:#34D399">In the page · content scripts</p>
+<p style="position:absolute;left:736px;top:948px;width:460px;font-family:'Geist Mono', 'Courier New', monospace;font-size:24px;color:#6EA8FF">Background · service worker</p>
+<div class="wires" style="position:absolute;left:128px;top:236px;width:1664px;height:774px"><svg viewBox="128 236 1664 774" preserveAspectRatio="none">
+<defs>
+<marker id="mg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#34D399"/></marker>
+<marker id="mb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#6EA8FF"/></marker>
+<marker id="ma" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#FBBF24"/></marker>
+<marker id="mn" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#8E8E96"/></marker>
+</defs>
+<path id="p1" class="w g" d="M292 352V490" marker-end="url(#mg)"/>
+<path id="p2" class="w g" d="M600 352V490" marker-end="url(#mg)"/>
+<path id="p3" class="w g" d="M628 562H734" marker-end="url(#mg)"/>
+<path id="p4" class="w b" d="M960 492V354" marker-end="url(#mb)"/>
+<path id="p5" class="w n" d="M1150 492V294H1238" marker-end="url(#mn)"/>
+<path id="p6" class="w a" d="M1188 562H1270" marker-end="url(#ma)"/>
+<path id="p7" class="w a" d="M1188 870H1230V606H1270" marker-end="url(#ma)"/>
+<path id="p8" class="w n" d="M1692 562H1740V870H1694" marker-end="url(#mn)"/>
+<circle r="9" fill="#34D399"><animateMotion dur="1.6s" repeatCount="indefinite"><mpath href="#p1"/></animateMotion></circle>
+<circle r="9" fill="#34D399"><animateMotion dur="1.6s" begin=".5s" repeatCount="indefinite"><mpath href="#p2"/></animateMotion></circle>
+<circle r="9" fill="#34D399"><animateMotion dur="1.2s" begin=".3s" repeatCount="indefinite"><mpath href="#p3"/></animateMotion></circle>
+<circle r="9" fill="#6EA8FF"><animateMotion dur="1.6s" begin=".8s" repeatCount="indefinite"><mpath href="#p4"/></animateMotion></circle>
+<circle r="8" fill="#8E8E96"><animateMotion dur="2.4s" begin="1s" repeatCount="indefinite"><mpath href="#p5"/></animateMotion></circle>
+<circle r="9" fill="#FBBF24"><animateMotion dur="1.2s" begin=".6s" repeatCount="indefinite"><mpath href="#p6"/></animateMotion></circle>
+<circle r="9" fill="#FBBF24"><animateMotion dur="2.2s" begin="1.2s" repeatCount="indefinite"><mpath href="#p7"/></animateMotion></circle>
+<circle r="8" fill="#8E8E96"><animateMotion dur="2.6s" begin=".4s" repeatCount="indefinite"><mpath href="#p8"/></animateMotion></circle>
+</svg></div>
+
+<p style="position:absolute;left:128px;top:100px;width:800px;font-family:'Geist Mono', 'Courier New', monospace;font-size:24px;letter-spacing:4px;color:#6EA8FF">ARCHITECTURE</p>
+<h2 style="position:absolute;left:128px;top:136px;width:860px;font-size:72px;font-weight:700;letter-spacing:-2px;line-height:1.1;color:#F5F5F7">How Codextent works</h2>
+<div style="position:absolute;left:1000px;top:96px;width:792px;height:124px;display:flex;flex-direction:column;align-items:end;gap:12px">
+<div style="display:flex;flex-direction:row;gap:12px">
+<p style="font-family:'Geist Mono', 'Courier New', monospace;font-size:24px;color:#D6D6DC;background:#15151A;border:1px solid #34D399;border-radius:999px;padding:6px 14px">Chrome MV3</p>
+<p style="font-family:'Geist Mono', 'Courier New', monospace;font-size:24px;color:#D6D6DC;background:#15151A;border:1px solid #34D399;border-radius:999px;padding:6px 14px">JavaScript</p>
+<p style="font-family:'Geist Mono', 'Courier New', monospace;font-size:24px;color:#D6D6DC;background:#15151A;border:1px solid #34D399;border-radius:999px;padding:6px 14px">HTML/CSS</p>
+<p style="font-family:'Geist Mono', 'Courier New', monospace;font-size:24px;color:#D6D6DC;background:#15151A;border:1px solid #FBBF24;border-radius:999px;padding:6px 14px">chrome.storage</p>
+</div>
+<div style="display:flex;flex-direction:row;gap:12px">
+<p style="font-family:'Geist Mono', 'Courier New', monospace;font-size:24px;color:#D6D6DC;background:#15151A;border:1px solid #6EA8FF;border-radius:999px;padding:6px 14px">Wandbox API</p>
+<p style="font-family:'Geist Mono', 'Courier New', monospace;font-size:24px;color:#D6D6DC;background:#15151A;border:1px solid #6EA8FF;border-radius:999px;padding:6px 14px">Judge0 API</p>
+<p style="font-family:'Geist Mono', 'Courier New', monospace;font-size:24px;color:#D6D6DC;background:#15151A;border:1px solid #B59CFF;border-radius:999px;padding:6px 14px">Ace · Monaco</p>
+<p style="font-family:'Geist Mono', 'Courier New', monospace;font-size:24px;color:#D6D6DC;background:#15151A;border:1px solid #B59CFF;border-radius:999px;padding:6px 14px">Playwright</p>
+</div>
+</div>
+
+<div style="position:absolute;left:152px;top:236px;width:280px;height:116px;background:#2A2A33;border:1px solid #44444E;border-radius:16px;padding:18px 22px;display:flex;flex-direction:column;gap:4px">
+<div style="display:flex;flex-direction:row;align-items:center;gap:12px"><svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="#F5F5F7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1"/><circle cx="9" cy="8" r="3.5"/><path d="M22 19v-1a4 4 0 0 0-3-3.9M16 4.2a3.5 3.5 0 0 1 0 6.6"/></svg><p style="font-size:32px;font-weight:650;color:#F5F5F7">Student</p></div>
+<p style="font-family:'Geist Mono', 'Courier New', monospace;font-size:24px;color:#9A9AA3">Person</p>
+</div>
+<div style="position:absolute;left:480px;top:236px;width:300px;height:116px;background:#2A2A33;border:1px solid #44444E;border-radius:16px;padding:18px 22px;display:flex;flex-direction:column;gap:4px">
+<div style="display:flex;flex-direction:row;align-items:center;gap:12px"><svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="#F5F5F7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg><p style="font-size:32px;font-weight:650;color:#F5F5F7">10 websites</p></div>
+<p style="font-family:'Geist Mono', 'Courier New', monospace;font-size:24px;color:#9A9AA3">External: sites</p>
+</div>
+<div style="position:absolute;left:820px;top:236px;width:280px;height:116px;background:#2A2A33;border:1px solid #44444E;border-radius:16px;padding:18px 22px;display:flex;flex-direction:column;gap:4px">
+<div style="display:flex;flex-direction:row;align-items:center;gap:12px"><svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="#F5F5F7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M7 18h10a4 4 0 0 0 .5-8 6 6 0 0 0-11.5 1.5A3.3 3.3 0 0 0 7 18z"/></svg><p style="font-size:32px;font-weight:650;color:#F5F5F7">Wandbox</p></div>
+<p style="font-family:'Geist Mono', 'Courier New', monospace;font-size:24px;color:#9A9AA3">External: runner</p>
+</div>
+<div style="position:absolute;left:1240px;top:236px;width:300px;height:116px;background:#2A2A33;border:1px solid #44444E;border-radius:16px;padding:18px 22px;display:flex;flex-direction:column;gap:4px">
+<div style="display:flex;flex-direction:row;align-items:center;gap:12px"><svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="#F5F5F7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M7 18h10a4 4 0 0 0 .5-8 6 6 0 0 0-11.5 1.5A3.3 3.3 0 0 0 7 18z"/></svg><p style="font-size:32px;font-weight:650;color:#F5F5F7">Judge0 CE</p></div>
+<p style="font-family:'Geist Mono', 'Courier New', monospace;font-size:24px;color:#9A9AA3">External: backup</p>
+</div>
+
+<div style="position:absolute;left:176px;top:492px;width:452px;height:140px;background:#1E1E25;border:1px solid #3A3A44;border-radius:16px;padding:16px 20px;display:flex;flex-direction:column;gap:2px">
+<div style="display:flex;flex-direction:row;align-items:center;gap:12px"><div style="width:14px;height:14px;border-radius:50%;background:#34D399"></div><p style="font-size:32px;font-weight:650;color:#F5F5F7">Predict bar</p></div>
+<p style="font-size:24px;color:#B9B9C2">Finds code, checks your guess</p>
+<p style="font-family:'Geist Mono', 'Courier New', monospace;font-size:24px;color:#7E7E88">content.js</p>
+</div>
+<div style="position:absolute;left:176px;top:646px;width:452px;height:140px;background:#1E1E25;border:1px solid #3A3A44;border-radius:16px;padding:16px 20px;display:flex;flex-direction:column;gap:2px">
+<div style="display:flex;flex-direction:row;align-items:center;gap:12px"><div style="width:14px;height:14px;border-radius:50%;background:#34D399"></div><p style="font-size:32px;font-weight:650;color:#F5F5F7">Solve-later chip</p></div>
+<p style="font-size:24px;color:#B9B9C2">LeetCode marks + idea notes</p>
+<p style="font-family:'Geist Mono', 'Courier New', monospace;font-size:24px;color:#7E7E88">leetcode.js</p>
+</div>
+<div style="position:absolute;left:176px;top:800px;width:452px;height:140px;background:#1E1E25;border:1px solid #3A3A44;border-radius:16px;padding:16px 20px;display:flex;flex-direction:column;gap:2px">
+<div style="display:flex;flex-direction:row;align-items:center;gap:12px"><div style="width:14px;height:14px;border-radius:50%;background:#34D399"></div><p style="font-size:32px;font-weight:650;color:#F5F5F7">Template picker</p></div>
+<p style="font-size:24px;color:#B9B9C2">Inserts C++ into Ace / Monaco</p>
+<p style="font-family:'Geist Mono', 'Courier New', monospace;font-size:24px;color:#7E7E88">templates-ui.js</p>
+</div>
+
+<div style="position:absolute;left:736px;top:492px;width:452px;height:140px;background:#1E1E25;border:1px solid #3A3A44;border-radius:16px;padding:16px 20px;display:flex;flex-direction:column;gap:2px">
+<div style="display:flex;flex-direction:row;align-items:center;gap:12px"><div style="width:14px;height:14px;border-radius:50%;background:#6EA8FF"></div><p style="font-size:32px;font-weight:650;color:#F5F5F7">Fast runner</p></div>
+<p style="font-size:24px;color:#B9B9C2">Wandbox first, Judge0 after 4 s</p>
+<p style="font-family:'Geist Mono', 'Courier New', monospace;font-size:24px;color:#7E7E88">runner.js · cache</p>
+</div>
+<div style="position:absolute;left:736px;top:646px;width:452px;height:140px;background:#1E1E25;border:1px solid #3A3A44;border-radius:16px;padding:16px 20px;display:flex;flex-direction:column;gap:2px">
+<div style="display:flex;flex-direction:row;align-items:center;gap:12px"><div style="width:14px;height:14px;border-radius:50%;background:#6EA8FF"></div><p style="font-size:32px;font-weight:650;color:#F5F5F7">Quiz builder</p></div>
+<p style="font-size:24px;color:#B9B9C2">What-if questions, run for real</p>
+<p style="font-family:'Geist Mono', 'Courier New', monospace;font-size:24px;color:#7E7E88">quiz.js</p>
+</div>
+<div style="position:absolute;left:736px;top:800px;width:452px;height:140px;background:#1E1E25;border:1px solid #3A3A44;border-radius:16px;padding:16px 20px;display:flex;flex-direction:column;gap:2px">
+<div style="display:flex;flex-direction:row;align-items:center;gap:12px"><div style="width:14px;height:14px;border-radius:50%;background:#6EA8FF"></div><p style="font-size:32px;font-weight:650;color:#F5F5F7">Code Clipper</p></div>
+<p style="font-size:24px;color:#B9B9C2">Saves code, notes, key points</p>
+<p style="font-family:'Geist Mono', 'Courier New', monospace;font-size:24px;color:#7E7E88">background.js</p>
+</div>
+
+<div style="position:absolute;left:1272px;top:492px;width:420px;height:140px;background:#26231A;border:1px solid #5C4A1E;border-radius:40px 40px 16px 16px;padding:16px 24px;display:flex;flex-direction:column;gap:2px">
+<div style="display:flex;flex-direction:row;align-items:center;gap:12px"><svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="#FBBF24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><ellipse cx="12" cy="5.5" rx="7.5" ry="2.8"/><path d="M4.5 5.5v13c0 1.5 3.4 2.8 7.5 2.8s7.5-1.3 7.5-2.8v-13M4.5 12c0 1.5 3.4 2.8 7.5 2.8s7.5-1.3 7.5-2.8"/></svg><p style="font-size:32px;font-weight:650;color:#F5F5F7">Local storage</p></div>
+<p style="font-size:24px;color:#C9C3B3">Attempts, vault, templates</p>
+<p style="font-family:'Geist Mono', 'Courier New', monospace;font-size:24px;color:#8F8670">Store: this browser</p>
+</div>
+<div style="position:absolute;left:1272px;top:646px;width:420px;height:140px;background:#26231A;border:1px solid #5C4A1E;border-radius:40px 40px 16px 16px;padding:16px 24px;display:flex;flex-direction:column;gap:2px">
+<div style="display:flex;flex-direction:row;align-items:center;gap:12px"><svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="#FBBF24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><ellipse cx="12" cy="5.5" rx="7.5" ry="2.8"/><path d="M4.5 5.5v13c0 1.5 3.4 2.8 7.5 2.8s7.5-1.3 7.5-2.8v-13M4.5 12c0 1.5 3.4 2.8 7.5 2.8s7.5-1.3 7.5-2.8"/></svg><p style="font-size:32px;font-weight:650;color:#F5F5F7">Sync storage</p></div>
+<p style="font-size:24px;color:#C9C3B3">Solve-later marks</p>
+<p style="font-family:'Geist Mono', 'Courier New', monospace;font-size:24px;color:#8F8670">Store: Google account</p>
+</div>
+<div style="position:absolute;left:1272px;top:800px;width:420px;height:140px;background:#1E1E25;border:1px solid #3A3A44;border-radius:16px;padding:16px 24px;display:flex;flex-direction:column;gap:2px">
+<div style="display:flex;flex-direction:row;align-items:center;gap:12px"><svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="#F5F5F7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><p style="font-size:32px;font-weight:650;color:#F5F5F7">My Learning Hub</p></div>
+<p style="font-size:24px;color:#B9B9C2">Vault, Practice, Templates</p>
+<p style="font-family:'Geist Mono', 'Courier New', monospace;font-size:24px;color:#7E7E88">Dashboard · popup</p>
+</div>
+
+
+<p style="position:absolute;left:186px;top:362px;width:212px;font-family:'Geist Mono', 'Courier New', monospace;font-size:24px;color:#D6D6DC;background:#2A2A33;border:1px solid #44444E;border-radius:8px;padding:2px 10px;text-align:center">Types a guess</p>
+<p style="position:absolute;left:494px;top:362px;width:212px;font-family:'Geist Mono', 'Courier New', monospace;font-size:24px;color:#D6D6DC;background:#2A2A33;border:1px solid #44444E;border-radius:8px;padding:2px 10px;text-align:center">Code examples</p>
+<p style="position:absolute;left:634px;top:542px;width:96px;font-family:'Geist Mono', 'Courier New', monospace;font-size:24px;color:#0B0B0E;background:#34D399;border-radius:8px;padding:2px 8px;text-align:center">CHECK</p>
+<p style="position:absolute;left:880px;top:362px;width:160px;font-family:'Geist Mono', 'Courier New', monospace;font-size:24px;color:#D6D6DC;background:#2A2A33;border:1px solid #44444E;border-radius:8px;padding:2px 10px;text-align:center">Runs code</p>
+<p style="position:absolute;left:1070px;top:362px;width:160px;font-family:'Geist Mono', 'Courier New', monospace;font-size:24px;color:#D6D6DC;background:#2A2A33;border:1px solid #44444E;border-radius:8px;padding:2px 10px;text-align:center">After 4 s</p>
+<p style="position:absolute;left:1190px;top:542px;width:80px;font-family:'Geist Mono', 'Courier New', monospace;font-size:24px;color:#0B0B0E;background:#FBBF24;border-radius:8px;padding:2px 6px;text-align:center">save</p>
+<p style="position:absolute;left:1696px;top:700px;width:92px;font-family:'Geist Mono', 'Courier New', monospace;font-size:24px;color:#D6D6DC;background:#2A2A33;border:1px solid #44444E;border-radius:8px;padding:2px 6px;text-align:center">reads</p>
+
+</div>
+
+<script>
+function fit(){var s=document.getElementById('stage');var k=Math.min(innerWidth/1920,innerHeight/1080);s.style.transform='translate(-50%,-50%) scale('+k+')';}
+addEventListener('resize',fit);fit();
+</script>
+</body></html>
