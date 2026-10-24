@@ -1,6 +1,6 @@
 {
   "name": "codextent",
-  "version": "0.15.0",
+  "version": "0.16.0",
   "private": true,
   "description": "Chrome extension: predict the output of C, C++, Java, Python and MySQL examples on learning sites, check it with Judge0, and learn the concepts.",
   "scripts": {

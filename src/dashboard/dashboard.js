@@ -46,12 +46,13 @@
     { id: 'sanfoundry', name: 'Sanfoundry', mark: 'SF' }
   ];
   var SITE = {}; SITES.forEach(function (s) { SITE[s.id] = s; });
+  SITE.codechef = { id: 'codechef', name: 'CodeChef', mark: 'CC' }; SITE.leetcode = { id: 'leetcode', name: 'LeetCode', mark: 'LC' }; // notes from coding platforms
   var SYM = { correct: ['✓', 'ok', 'Correct'], incorrect: ['✗', 'bad', 'Wrong'], compile_error: ['!', 'warn', 'Compile error'],
               runtime_error: ['!', 'warn', 'Runtime error'], timeout: ['⏱', 'warn', 'Timeout'], error: ['!', 'warn', 'Runner error'] };
   var VIEWS = { vault: 'My Revision Vault', home: 'My Learning Hub', recent: 'Recent attempts', revision: 'Needs revision', practice: 'Practice', concepts: 'Concepts', templates: 'Templates' };
   var SUBS = { vault: 'Code you clipped from learning sites — add notes, mark what is hard, revise it later', home: 'Your learning summary', recent: 'Every check you made, newest first',
                revision: 'Questions whose latest check was wrong — open one, compare, retry', practice: 'Questions made from your own code — wrong attempts, difficult and mastered clips', concepts: 'What each concept means and the problems you did',
-               templates: 'Ready C++ code for CodeChef and LeetCode — insert with { } Templates or Alt+Shift+T' };
+               templates: 'Ready C++ code for CodeChef and LeetCode — insert with the Codextent button or Alt+Shift+T' };
 
   var state = { lang: '', site: '', view: 'home', recentLimit: 15, openConcept: null, showAllConcepts: false, open: {},
                 expand: { tc: false, sites: false }, vf: { q: '', status: '', site: '', concept: '', sort: 'new', kind: 'code' },

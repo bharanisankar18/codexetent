@@ -98,7 +98,7 @@
     pre.addEventListener('click', function () { pre.classList.remove('folded'); });
     c.appendChild(pre);
     var bar = h('div', 'tbar');
-    var cp = btn('Copy', 'primary', function () { copy(code, cp); });
+    var cp = btn('Copy', '', function () { copy(code, cp); });
     bar.appendChild(cp);
     if (t.custom) bar.appendChild(btn('Edit', '', function () { st.edit = Object.assign({}, t); render(); scrollTop(); }));
     bar.appendChild(btn('Duplicate', '', function () { st.edit = Object.assign({}, t, { id: null, name: t.name + ' (copy)' }); render(); scrollTop(); }));
@@ -123,7 +123,7 @@
 
     var info = h('div', 'card tinfo');
     info.appendChild(h('b', null, 'Use them while you code'));
-    info.appendChild(h('p', null, 'On a CodeChef or LeetCode problem, click { } Templates next to the editor or press Alt+Shift+T. CodeChef: an empty editor gets the whole program (main + while (t--)), otherwise the helpers at the cursor. LeetCode: the helpers at the cursor, inside class Solution. C++ only for now.'));
+    info.appendChild(h('p', null, 'On a CodeChef or LeetCode problem, click the round Codextent button next to the editor (or press Alt+Shift+T) and open Templates. CodeChef: an empty editor gets the whole program (main + while (t--)), otherwise the helpers at the cursor. LeetCode: the helpers at the cursor, inside class Solution. C++ only for now.'));
     box.appendChild(info);
 
     if (st.edit) box.appendChild(editor());

@@ -41,6 +41,8 @@
       if (/scaler\.com$/.test(h)) return 'scaler';
       if (/studytonight\.com$/.test(h)) return 'studytonight';
       if (/sanfoundry\.com$/.test(h)) return 'sanfoundry';
+      if (/codechef\.com$/.test(h)) return 'codechef';
+      if (/leetcode\.com$/.test(h)) return 'leetcode';
       return h;
     } catch (e) { return 'other'; }
   }

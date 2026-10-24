@@ -579,3 +579,15 @@ ul.points li.flash { animation: flash 1.6s ease 2; }
 .tprev { max-height: 260px; overflow: auto; margin: 0; }
 .terr { margin: 0; color: var(--amber); font-size: 12.5px; }
 @media (max-width: 900px) { .tcols, .ttools { grid-template-columns: 1fr; } }
+
+/* ---------- Blue accent (v0.16): black and white everywhere, blue only for "where you are" and "do this" ---------- */
+:root, :root[data-theme="dark"] { --blue: #4c8dff; --blue-soft: rgba(76,141,255,.14); --on-blue: #ffffff; }
+:root[data-theme="light"] { --blue: #2563eb; --blue-soft: rgba(37,99,235,.10); --on-blue: #ffffff; }
+:root[data-theme="night"] { --blue: #7aa2ff; --blue-soft: rgba(122,162,255,.16); --on-blue: #0b1026; }
+.side nav a.active { background: var(--blue-soft); color: var(--ink); box-shadow: inset 3px 0 0 var(--blue); }
+.side nav a.active svg { color: var(--blue); }
+.side nav a.active .count { background: var(--blue); color: var(--on-blue); }
+.btn.primary { background: var(--blue); border-color: var(--blue); color: var(--on-blue); }
+.btn.primary:hover { box-shadow: 0 0 0 3px var(--blue-soft), 0 0 18px var(--blue-soft); }
+.link:hover { color: var(--blue); }
+.search input:focus, .vtools select:focus, select.mini:focus, .tfield input:focus, .tfield textarea:focus { box-shadow: 0 0 0 1px var(--blue), 0 0 0 4px var(--blue-soft); }

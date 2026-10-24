@@ -541,7 +541,7 @@ async function step(name, fn) {
       await d.setViewportSize({ width: 1280, height: 1000 });
       await d.goto(`chrome-extension://${extId}/src/dashboard/dashboard.html#vault`);
       await d.waitForSelector('#clipList .clip');
-      assert.equal(await d.locator('.side nav a').first().getAttribute('data-view'), 'vault', 'vault is first in the sidebar');
+      assert.equal(await d.locator('.side nav a').first().getAttribute('data-view'), 'home', 'My Learning Hub (landing page) is first in the sidebar');
       assert.equal(await d.textContent('#viewTitle'), 'My Revision Vault');
       await d.locator('#langTabs .ltab[data-l="all"]').click();
       assert.equal(await d.locator('#clipList .clip').count(), 4, 'Code section: 4 code clips (the text clip is a key point)');
@@ -827,48 +827,62 @@ async function step(name, fn) {
       const cc = await ctx.newPage();
       cc.on('pageerror', (e) => pageErrors.push('codechef: ' + e));
       await cc.goto('https://www.codechef.com/problems/SUMN');
-      const ccBtn = cc.locator('[data-codextent-templates] >> .btn');
+      const ccBtn = cc.locator('[data-codextent-templates] >> .fab');
       await ccBtn.waitFor({ timeout: 10000 });
       assert.equal(await cc.locator('[data-codextent-templates]').getAttribute('data-float'), 'editor');
       await ccBtn.click();
-      const pk = cc.locator('[data-codextent-templates] >> .picker.show');
+      const pk = cc.locator('[data-codextent-templates] >> .panel.show');
       await pk.waitFor();
-      await pk.locator('.q').fill('sliding');
-      assert.match(await pk.locator('.item[aria-selected="true"]').textContent(), /Sliding window/i);
-      assert.match(await pk.locator('.desc').textContent(), /Whole program/);
+      assert.equal(await pk.locator('.tab[aria-selected="true"]').getAttribute('data-tab'), 'templates');
       await cc.screenshot({ path: path.join(SHOTS, 'templates-codechef-picker.png') });
-      await pk.locator('.q').press('Enter');
+      // quick insert: test-case loop on the empty editor → whole program
+      await pk.locator('.qb[data-q="loop"]').click();
       await cc.waitForFunction(() => /while \(t--\) solve\(\);/.test(ace.edit('submit-ide-v2').getValue()));
       const full = await cc.evaluate(() => ace.edit('submit-ide-v2').getValue());
       assert.match(full, /^#include <bits\/stdc\+\+\.h>/);
       assert.doesNotMatch(full, /write code here/);
-      // non-empty editor → snippet at the cursor, via the keyboard shortcut
+      // non-empty editor → template goes in at the cursor, via the keyboard shortcut + search + Enter
       await cc.evaluate(() => { const e = ace.edit('submit-ide-v2'); e.setValue('int main() {\n}\n', -1); e.moveCursorTo(0, 0); e.focus(); });
       await cc.keyboard.press('Alt+Shift+T');
       await pk.waitFor();
       await pk.locator('.q').fill('dsu');
-      assert.match(await pk.locator('.desc').textContent(), /Snippet at the cursor/);
-      await pk.locator('.go').click();
+      assert.match(await pk.locator('.row[aria-selected="true"]').textContent(), /DSU/);
+      await pk.locator('.q').press('Enter');
       await cc.waitForFunction(() => /^struct DSU/.test(ace.edit('submit-ide-v2').getValue()));
       assert.match(await cc.evaluate(() => ace.edit('submit-ide-v2').getValue()), /int main\(\) \{\n\}\n$/);
-      // "Whole program" on a non-empty editor asks first
-      await cc.keyboard.press('Alt+Shift+T');
-      await pk.locator('.seg button', { hasText: 'Whole program' }).click();
-      await pk.locator('.go').click();
-      assert.match(await pk.locator('.go').textContent(), /Replace my code\?/);
+      // quick "Fast I/O" → two lines at the cursor
+      await cc.evaluate(() => { const e = ace.edit('submit-ide-v2'); e.setValue('int main() {\n}\n', -1); e.moveCursorTo(1, 0); });
+      await ccBtn.click();
+      await pk.locator('.qb[data-q="fastio"]').click();
+      await cc.waitForFunction(() => /int main\(\) \{\nios::sync_with_stdio\(false\);\ncin\.tie\(nullptr\);\n\}/.test(ace.edit('submit-ide-v2').getValue()));
+      // test-case loop on a non-empty editor asks first
+      await ccBtn.click();
+      await pk.locator('.qb[data-q="loop"]').click();
+      assert.match(await pk.locator('.qb[data-q="loop"]').textContent(), /Replace my code\?/);
+      await pk.locator('.x').click();
+      // click a row → preview
+      await ccBtn.click();
+      await pk.locator('.row', { hasText: 'Sieve' }).locator('.name').click();
+      assert.match(await pk.locator('.row', { hasText: 'Sieve' }).locator('pre').textContent(), /primesUpTo/);
       await pk.locator('.x').click();
       // switch the editor to Java → warning shown
       await cc.evaluate(() => ace.edit('submit-ide-v2').session.setMode('ace/mode/java'));
       await cc.waitForFunction(() => ace.edit('submit-ide-v2').session.getMode().$id === 'ace/mode/java');
       await cc.keyboard.press('Alt+Shift+T');
-      assert.match(await pk.locator('.note').textContent(), /set to Java/);
+      assert.match(await pk.locator('.status').textContent(), /set to Java/);
       // favorite → first in the list and stored
-      await pk.locator('.q').fill('');
-      await pk.locator('.item', { hasText: 'Sieve' }).locator('.star').click();
-      await cc.waitForFunction(() => true);
-      await pk.locator('.item.item').first().waitFor();
-      await cc.waitForTimeout(150);
-      assert.match(await pk.locator('.item').first().textContent(), /Sieve/);
+      await pk.locator('.row', { hasText: 'Sieve' }).locator('.star').click();
+      await cc.waitForTimeout(200);
+      assert.match(await pk.locator('.row').first().textContent(), /Sieve/);
+      // Notes tab → saved to the vault and listed for this problem
+      await pk.locator('.tab[data-tab="notes"]').click();
+      await pk.locator('textarea.note').fill('prefix sums, watch for overflow');
+      await pk.locator('.save').click();
+      await pk.locator('.saved .it').first().waitFor({ timeout: 5000 });
+      assert.match(await pk.locator('.saved').textContent(), /prefix sums, watch for overflow/);
+      const ccNote = await sw.evaluate(async () => (await chrome.storage.local.get('vault')).vault.filter((c) => c.kind === 'note' && /codechef/.test(c.url)));
+      assert.equal(ccNote.length, 1);
+      assert.match(ccNote[0].pageTitle, /Sum of N/);
       await cc.keyboard.press('Escape');
       assert.ok(!(await pk.isVisible()));
       await cc.close();
@@ -891,14 +905,15 @@ async function step(name, fn) {
       lc.on('pageerror', (e) => pageErrors.push('leetcode-templates: ' + e));
       await lc.goto('https://leetcode.com/problems/two-sum/description/');
       await lc.waitForFunction(() => window.monReady, null, { timeout: 20000 });
-      const lcBtn = lc.locator('[data-codextent-templates] >> .btn');
+      const lcBtn = lc.locator('[data-codextent-templates] >> .fab');
       await lcBtn.waitFor({ timeout: 10000 });
       assert.equal(await lc.locator('[data-codextent-templates]').evaluate((h) => h.previousElementSibling.textContent), 'C++');
       await lc.evaluate(() => { window.mon.setPosition({ lineNumber: 3, column: 1 }); window.mon.focus(); });
       await lcBtn.click();
-      const lp = lc.locator('[data-codextent-templates] >> .picker.show');
+      const lp = lc.locator('[data-codextent-templates] >> .panel.show');
       await lp.waitFor();
-      assert.equal(await lp.locator('.item', { hasText: 'Contest base' }).count(), 0, 'templates without helpers are not offered on LeetCode');
+      assert.equal(await lp.locator('.row', { hasText: 'Contest base' }).count(), 0, 'templates without helpers are not offered on LeetCode');
+      assert.equal(await lp.locator('.qb[data-q="loop"]').count(), 0, 'no test-case loop on LeetCode');
       await lp.locator('.q').fill('gcd');
       await lc.screenshot({ path: path.join(SHOTS, 'templates-leetcode-picker.png') });
       await lp.locator('.q').press('Enter');
