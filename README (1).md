@@ -3,10 +3,10 @@
 </p>
 
 <p align="center">
-  <img alt="Chrome MV3" src="https://img.shields.io/badge/Chrome-Manifest%20V3-4c8dff?style=for-the-badge&logo=googlechrome&logoColor=white&labelColor=0d1117">
-  <img alt="Vanilla JS" src="https://img.shields.io/badge/JavaScript-vanilla-fbbf24?style=for-the-badge&logo=javascript&logoColor=white&labelColor=0d1117">
-  <img alt="Tests" src="https://img.shields.io/badge/tests-171%20unit%20%C2%B7%2030%20browser-34d399?style=for-the-badge&labelColor=0d1117">
-  <img alt="No server" src="https://img.shields.io/badge/data-stays%20in%20your%20browser-b59cff?style=for-the-badge&labelColor=0d1117">
+  <img alt="Chrome MV3" src="https://img.shields.io/badge/Chrome-Manifest%20V3-4c8dff?style=for-the-badge\&logo=googlechrome\&logoColor=white\&labelColor=0d1117">
+  <img alt="Vanilla JS" src="https://img.shields.io/badge/JavaScript-vanilla-fbbf24?style=for-the-badge\&logo=javascript\&logoColor=white\&labelColor=0d1117">
+  <img alt="Tests" src="https://img.shields.io/badge/tests-171%20unit%20%C2%B7%2030%20browser-34d399?style=for-the-badge\&labelColor=0d1117">
+  <img alt="No server" src="https://img.shields.io/badge/data-stays%20in%20your%20browser-b59cff?style=for-the-badge\&labelColor=0d1117">
 </p>
 
 <h3 align="center">Read less. Predict more. Remember everything.</h3>
@@ -73,13 +73,13 @@
 
 ## 🌍 Where it works
 
-| | Sites | Languages |
-|---|---|---|
-| **Predict the output** | GeeksforGeeks · W3Schools · Programiz · TutorialsPoint · Javatpoint · Scaler · Studytonight · Sanfoundry | C · C++ · Java · Python · MySQL |
-| **Run snippets without `main()`** | GeeksforGeeks · W3Schools | C · C++ · Java |
-| **Blur outputs · key points · notes** | All 8 tutorial sites | any |
-| **Templates + Notes panel** | CodeChef · LeetCode | C++ |
-| **Solve later board** | LeetCode (Array problems) | any |
+||Sites|Languages|
+|-|-|-|
+|**Predict the output**|GeeksforGeeks · W3Schools · Programiz · TutorialsPoint · Javatpoint · Scaler · Studytonight · Sanfoundry|C · C++ · Java · Python · MySQL|
+|**Run snippets without `main()`**|GeeksforGeeks · W3Schools|C · C++ · Java|
+|**Blur outputs · key points · notes**|All 8 tutorial sites|any|
+|**Templates + Notes panel**|CodeChef · LeetCode|C++|
+|**Solve later board**|LeetCode (Array problems)|any|
 
 ## 🚀 Install in 1 minute
 
@@ -88,16 +88,16 @@
 3. Click **Load unpacked** and pick the folder.
 4. Open any tutorial page, for example a C++ for-loop on GeeksforGeeks, and look for the bar under the code.
 
-> Updating? Replace the files, then press **↻ Reload** on the extension card and **Ctrl+F5** on open tabs.
+> Updating? Replace the files, then press \*\*↻ Reload\*\* on the extension card and \*\*Ctrl+F5\*\* on open tabs.
 
 ## ⌨️ Shortcuts
 
-| Do this | Press |
-|---|---|
-| Check your guess | **Enter** in the bar (**Shift+Enter** for a new line) |
-| Clip selected code to the vault | **Alt+Shift+S** or right-click → *Save to My Revision Vault* |
-| Open Templates + Notes on CodeChef / LeetCode | **Alt+Shift+T** |
-| Save a note on a coding platform | **Ctrl+Enter** |
+|Do this|Press|
+|-|-|
+|Check your guess|**Enter** in the bar (**Shift+Enter** for a new line)|
+|Clip selected code to the vault|**Alt+Shift+S** or right-click → *Save to My Revision Vault*|
+|Open Templates + Notes on CodeChef / LeetCode|**Alt+Shift+T**|
+|Save a note on a coding platform|**Ctrl+Enter**|
 
 <p align="center"><img src=".github/assets/divider.svg" alt="" width="100%"></p>
 
@@ -105,21 +105,21 @@
 
 ```mermaid
 flowchart LR
-  S([Student]) -->|types a guess| P[Predict bar<br/>content script]
-  W[(10 websites)] -->|code examples| P
-  P -->|CHECK| R[Fast runner<br/>service worker]
-  R -->|first| WB[Wandbox]
-  R -.->|after 4 s| J0[Judge0 CE]
-  R -->|save| L[(chrome.storage.local)]
-  T[Template picker] -->|insert| ED[Ace / Monaco editor]
-  B[Solve-later board] -->|sync| SY[(chrome.storage.sync)]
-  L --> H[My Learning Hub]
+  S(\[Student]) -->|types a guess| P\[Predict bar<br/>content script]
+  W\[(10 websites)] -->|code examples| P
+  P -->|CHECK| R\[Fast runner<br/>service worker]
+  R -->|first| WB\[Wandbox]
+  R -.->|after 4 s| J0\[Judge0 CE]
+  R -->|save| L\[(chrome.storage.local)]
+  T\[Template picker] -->|insert| ED\[Ace / Monaco editor]
+  B\[Solve-later board] -->|sync| SY\[(chrome.storage.sync)]
+  L --> H\[My Learning Hub]
   SY --> H
 ```
 
-- **In the page:** content scripts find the code, draw the bar, blur answers, and talk to the editors (Ace on CodeChef, Monaco on LeetCode) through tiny page-world adapters.
-- **In the background:** a service worker runs code on **Wandbox** first and brings in **Judge0** if it is slow. It caches results and starts running as soon as the bar opens.
-- **Your data:** attempts, clips, notes and templates live in `chrome.storage.local`; LeetCode marks live in `chrome.storage.sync`. No account, no server.
+* **In the page:** content scripts find the code, draw the bar, blur answers, and talk to the editors (Ace on CodeChef, Monaco on LeetCode) through tiny page-world adapters.
+* **In the background:** a service worker runs code on **Wandbox** first and brings in **Judge0** if it is slow. It caches results and starts running as soon as the bar opens.
+* **Your data:** attempts, clips, notes and templates live in `chrome.storage.local`; LeetCode marks live in `chrome.storage.sync`. No account, no server.
 
 ## 🛠️ Tech stack
 
@@ -146,25 +146,27 @@ src/
   popup/  options/       toolbar popup and settings
 tests/                   unit tests + e2e (tests/e2e)
 ```
+
 </details>
 
 ## 🗺️ Roadmap
 
-- [x] Predict the output on 8 tutorial sites, 5 languages
-- [x] Revision Vault, notes, key points, mistake quiz
-- [x] C++ templates on CodeChef and LeetCode
-- [x] LeetCode solve-later board
-- [ ] Codeforces and HackerRank
-- [ ] Java and Python templates
-- [ ] Accounts with Node.js + Express + MongoDB Atlas
-- [ ] AI hints that explain a wrong guess
-- [ ] Class dashboards for teachers
+* \[x] Predict the output on 8 tutorial sites, 5 languages
+* \[x] Revision Vault, notes, key points, mistake quiz
+* \[x] C++ templates on CodeChef and LeetCode
+* \[x] LeetCode solve-later board
+* \[ ] Codeforces and HackerRank
+* \[ ] Java and Python templates
+* \[ ] Accounts with Node.js + Express + MongoDB Atlas
+* \[ ] AI hints that explain a wrong guess
+* \[ ] Class dashboards for teachers
 
 <p align="center"><img src=".github/assets/divider.svg" alt="" width="100%"></p>
 
 <p align="center">
   <b>Built by Team Iron Men</b><br>
-  Sukumar M · Dinesh C · Abhishek S · Nandhakumar Sanjay · Bharani Sankar S
+ Dinesh C · Abhishek S · Nandhakumar Sanjay · Bharani Sankar S
 </p>
 
 <p align="center"><sub>If Codextent helped you learn, leave a ⭐ so other students find it.</sub></p>
+
