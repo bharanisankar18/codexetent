@@ -754,13 +754,17 @@ async function step(name, fn) {
       await d.close();
     });
 
-    await step('LeetCode: String / Hash Table problem → "Solve later" chip in the chip row, note saved to Chrome sync; Array-only problem → nothing; dashboard LeetCode tab', async () => {
+    await step('LeetCode: Array problem → bookmark + logo in the Code bar, board saves a note to Chrome sync; other problems → nothing; dashboard LeetCode tab', async () => {
       const page = (title) => `<!doctype html><html class="dark"><head><title>${title} - LeetCode</title></head><body style="background:#1a1a1a;color:#eee;font-family:sans-serif">
         <div style="padding:20px"><div class="flex items-start gap-2"><div class="text-title-large" style="font-size:24px;font-weight:600"><a href="#">${title}</a></div></div>
         <div class="flex gap-1" style="display:flex;gap:4px;margin-top:12px"><div class="text-difficulty-easy" style="padding:2px 8px;border-radius:99px;background:rgba(255,255,255,.1);color:#46c6c2;font-size:12px">Easy</div>
         <div style="padding:2px 8px;border-radius:99px;background:rgba(255,255,255,.1);font-size:12px">Topics</div><div style="padding:2px 8px;border-radius:99px;background:rgba(255,255,255,.1);font-size:12px">Companies</div>
-        <div style="padding:2px 8px;border-radius:99px;background:rgba(255,255,255,.1);font-size:12px">Hint</div></div><p>Given an array of integers nums…</p></div></body></html>`;
-      const Q = { 'two-sum': ['1', 'Two Sum', 'Easy', ['Array', 'Hash Table']], 'rotate-array': ['189', 'Rotate Array', 'Medium', ['Array', 'Math', 'Two Pointers']] };
+        <div style="padding:2px 8px;border-radius:99px;background:rgba(255,255,255,.1);font-size:12px">Hint</div></div><p>Given an array of integers nums…</p></div>
+        <div id="editor" style="margin:0 20px;border:1px solid #333;border-radius:8px"><div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px">
+          <div style="display:flex;gap:8px;align-items:center"><button>Python</button><span>Auto</span></div>
+          <div id="icons" style="display:flex;gap:6px;align-items:center"><button id="lcbm" style="width:28px;height:28px"><svg width="12" height="12"></svg></button><button style="width:28px;height:28px"><svg width="12" height="12"></svg></button><button style="width:28px;height:28px"><svg width="12" height="12"></svg></button><button style="width:28px;height:28px"><svg width="12" height="12"></svg></button></div></div>
+          <div style="height:200px"></div></div></body></html>`;
+      const Q = { 'two-sum': ['1', 'Two Sum', 'Easy', ['Array', 'Hash Table']], 'rotate-array': ['189', 'Rotate Array', 'Medium', ['Math', 'Two Pointers']] };
       await ctx.route(/https:\/\/leetcode\.com\/.*/, (route) => {
         const u = new URL(route.request().url());
         if (u.pathname.startsWith('/graphql')) {
@@ -773,23 +777,25 @@ async function step(name, fn) {
       const lc = await ctx.newPage();
       lc.on('pageerror', (e) => pageErrors.push('leetcode: ' + e));
       await lc.goto('https://leetcode.com/problems/two-sum/description/');
-      const chip = lc.locator('[data-codextent-lc] .chip');
-      await chip.waitFor({ timeout: 10000 });
-      assert.equal(await lc.locator('[data-codextent-lc]').evaluate((h) => h.parentElement.className), 'flex gap-1');
-      await chip.click();
-      await lc.locator('[data-codextent-lc] textarea').fill('hash map value -> index, one pass');
-      await lc.locator('[data-codextent-lc] button.save').click();
-      await lc.locator('[data-codextent-lc] .chip.saved').waitFor();
-      await lc.locator('[data-codextent-lc]').screenshot({ path: path.join(SHOTS, 'leetcode-chip.png') });
-      await lc.waitForTimeout(900);
-      await chip.click();
-      await lc.locator('[data-codextent-lc] .pop.show').waitFor();
-      await lc.screenshot({ path: path.join(SHOTS, 'leetcode-pop.png'), clip: { x: 0, y: 0, width: 720, height: 460 } });
+      const nav = lc.locator('[data-codextent-lcnav]');
+      await nav.locator('.ib.bm').waitFor({ timeout: 10000 });
+      assert.equal(await lc.locator('[data-codextent-lc]').count(), 0, 'no chip under the title');
+      assert.equal(await nav.evaluate((h) => [h.parentElement.id, h.nextElementSibling.id].join()), 'icons,lcbm', 'in the Code bar, just left of LeetCode\'s bookmark');
+      const bx = await lc.evaluate(() => { const r = (el) => el.getBoundingClientRect(); return { nav: r(document.querySelector('[data-codextent-lcnav]')), bm: r(document.getElementById('lcbm')) }; });
+      assert.ok(bx.nav.right <= bx.bm.left + 1, 'no overlap with LeetCode\'s icons: ' + JSON.stringify(bx));
+      await nav.locator('.ib.bm').click();
+      const board = nav.locator('.board.show');
+      await board.waitFor();
+      await board.locator('textarea').fill('hash map value -> index, one pass');
+      await board.locator('button.save').click();
+      await nav.locator('.ib.bm.on').waitFor();
+      assert.equal(await nav.locator('.count').textContent(), '1');
+      await lc.screenshot({ path: path.join(SHOTS, 'leetcode-board.png'), clip: { x: 0, y: 0, width: 1100, height: 700 } });
       const synced = await sw.evaluate(async () => (await chrome.storage.sync.get('lc:two-sum'))['lc:two-sum']);
       assert.deepEqual([synced.t, synced.d, synced.n, synced.st], ['Two Sum', 'easy', 'hash map value -> index, one pass', 'todo']);
-      // single-page navigation to a non-Array problem: chip goes away
+      // single-page navigation to a problem without the Array tag: icons go away
       await lc.evaluate(() => history.pushState({}, '', '/problems/rotate-array/'));
-      await lc.waitForFunction(() => !document.querySelector('[data-codextent-lc]'), null, { timeout: 5000 });
+      await lc.waitForFunction(() => !document.querySelector('[data-codextent-lcnav]'), null, { timeout: 5000 });
       await lc.close();
 
       const d = await ctx.newPage();
@@ -890,7 +896,10 @@ async function step(name, fn) {
       // LeetCode with the real Monaco editor
       await ctx.unroute(/https:\/\/leetcode\.com\/.*/);
       const lcPage = `<!doctype html><html class="dark"><head><title>Two Sum - LeetCode</title></head><body style="margin:0;background:#1a1a1a;color:#eee;font-family:sans-serif">
-        <div id="editor"><div class="flex items-center" style="display:flex;gap:6px;padding:6px"><button>C++</button><button>Auto</button></div>
+        <nav style="display:flex;justify-content:space-between;align-items:center;height:48px;padding:0 12px"><a href="/">LC</a>
+        <div id="mid" style="display:flex;gap:6px;align-items:center"><button>Run</button><button data-e2e-locator="console-submit-button">Submit</button><button>Note</button><button id="askleet">Ask</button></div>
+        <div><button id="layout">Layout</button></div></nav>
+        <div id="editor"><div class="flex items-center" style="display:flex;gap:6px;padding:6px"><button>C++</button><button>Auto</button><span style="flex:1"></span><button><svg width="12" height="12"></svg></button><button><svg width="12" height="12"></svg></button><button><svg width="12" height="12"></svg></button></div>
         <div id="mon" style="height:420px"></div></div>
         <script>window.MonacoEnvironment={getWorkerUrl:function(){return 'data:text/javascript,'}};</script>
         <script src="/__cx/monaco/vs/loader.js"></script>
@@ -905,11 +914,12 @@ async function step(name, fn) {
       lc.on('pageerror', (e) => pageErrors.push('leetcode-templates: ' + e));
       await lc.goto('https://leetcode.com/problems/two-sum/description/');
       await lc.waitForFunction(() => window.monReady, null, { timeout: 20000 });
-      const lcBtn = lc.locator('[data-codextent-templates] >> .fab');
-      await lcBtn.waitFor({ timeout: 10000 });
-      assert.equal(await lc.locator('[data-codextent-templates]').evaluate((h) => h.previousElementSibling.textContent), 'C++');
+      const lcNav = lc.locator('[data-codextent-lcnav]');
+      await lcNav.locator('.ib.lg').waitFor({ timeout: 10000 });
+      assert.equal(await lcNav.evaluate((h) => h.parentElement.closest('#editor') !== null), true, 'icons sit in the Code bar');
+      await lc.locator('[data-codextent-templates] >> .fab').waitFor({ state: 'hidden', timeout: 5000 }); // no second button near the editor
       await lc.evaluate(() => { window.mon.setPosition({ lineNumber: 3, column: 1 }); window.mon.focus(); });
-      await lcBtn.click();
+      await lcNav.locator('.ib.lg').click();
       const lp = lc.locator('[data-codextent-templates] >> .panel.show');
       await lp.waitFor();
       assert.equal(await lp.locator('.row', { hasText: 'Contest base' }).count(), 0, 'templates without helpers are not offered on LeetCode');

@@ -327,16 +327,16 @@ pre { margin: 0 4px 8px 32px; padding: 9px 11px; max-height: 190px; overflow: au
     } catch (e) { ui.notes = []; }
   }
   async function reload() { ui.all = await TP.all(); render(); if (isOpen()) focusMain(); }
-  async function open(tab) {
+  async function open(tab, anchor) {
     if (tab) ui.tab = tab;
     ui.editor = await ask('state');
     ui.all = await TP.all();
     await loadNotes();
     ui.confirm = null; ui.q = ''; ui.sel = 0; ui.open = null;
     render();
-    var r = fab.getBoundingClientRect(), w = Math.min(440, window.innerWidth - 24);
+    var r = anchor || fab.getBoundingClientRect(), w = Math.min(440, window.innerWidth - 24);
     var left = Math.max(12, Math.min(r.right - w, window.innerWidth - w - 12)), top = r.bottom + 8;
-    if (!fab.isConnected || r.width === 0) { left = (window.innerWidth - w) / 2; top = 60; }
+    if (!anchor && (!fab.isConnected || r.width === 0)) { left = (window.innerWidth - w) / 2; top = 60; }
     if (top + 420 > window.innerHeight) top = Math.max(12, r.top - 8 - Math.min(600, window.innerHeight - 32));
     panel.style.left = left + 'px'; panel.style.top = top + 'px';
     panel.classList.add('show');
@@ -347,6 +347,12 @@ pre { margin: 0 4px 8px 32px; padding: 9px 11px; max-height: 190px; overflow: au
   function isOpen() { return panel.classList.contains('show'); }
 
   fab.addEventListener('click', function (e) { e.stopPropagation(); if (isOpen()) close(); else open(); });
+  // LeetCode: the Codextent icon lives in the top bar (src/content/leetcode.js) and asks us to open here
+  window.addEventListener('codextent:open-panel', function (e) {
+    if (isOpen()) { close(); return; }
+    var d = e.detail || {};
+    open(null, { left: d.left, right: d.right, top: d.top, bottom: d.bottom, width: (d.right || 0) - (d.left || 0) });
+  });
   document.addEventListener('mousedown', function (e) { if (isOpen() && e.composedPath().indexOf(host) === -1) close(); }, true);
   window.addEventListener('keydown', function (e) {
     if (e.key === 'Escape' && isOpen()) { e.preventDefault(); close(); return; }
@@ -359,8 +365,11 @@ pre { margin: 0 4px 8px 32px; padding: 9px 11px; max-height: 190px; overflow: au
     var spot = null;
     if (PLATFORM === 'leetcode') {
       if (!/^\/problems\//.test(location.pathname)) { host.remove(); return; }
-      var langBtn = Array.prototype.filter.call(document.querySelectorAll('#editor button, [id="editor"] button'), function (b) { return /^(C\+\+|C|Java|Python3?|JavaScript|TypeScript|C#|Go|Rust|Kotlin|Swift|Ruby|Scala|PHP|Dart)$/.test(b.textContent.trim()); })[0];
-      if (langBtn) spot = { parent: langBtn.parentElement, after: langBtn };
+      // LeetCode: the Codextent logo lives in the Code bar (src/content/leetcode.js, Array problems) or Alt+Shift+T.
+      // Keep only the panel + toast here, never a second button.
+      fab.style.display = 'none';
+      if (!host.isConnected || host.getAttribute('data-float') !== 'hidden') { host.setAttribute('data-float', 'hidden'); host.style.cssText = 'position:fixed !important;left:0 !important;top:0 !important;width:0 !important;height:0 !important;z-index:2147483000 !important;'; document.body.appendChild(host); }
+      return;
     } else {
       var ace = document.getElementById('submit-ide-v2') || document.querySelector('.ace_editor');
       if (ace && ace.parentElement) spot = { parent: ace.parentElement, float: true };

@@ -6,7 +6,7 @@
  *   sync key "lc:<slug>" -> { s, id, t, d, g:[tags], n:note, st:'todo', ca, ua }
  *   Done problems move to chrome.storage.local "lcDone" (keeps the small sync space for open ones).
  * Chrome sync limits: 100 KB total, 8 KB per item, 512 items -> notes are capped at 1500 characters.
- * For now: only problems tagged String or Hash Table (ONLY_TAGS); set it to null to allow every problem.
+ * For now: only problems tagged Array (ONLY_TAGS); set it to null to allow every problem.
  */
 (function (root) {
   'use strict';
@@ -14,7 +14,7 @@
   var PREFIX = 'lc:';
   var DONE_KEY = 'lcDone';
   var MAX_NOTE = 1500;
-  var ONLY_TAGS = ['string', 'hash-table'];
+  var ONLY_TAGS = ['array'];
   var SYNC_QUOTA = 102400;
 
   function slugFromPath(pathname) {

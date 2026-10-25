@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Codextent – Predict Code Output",
   "short_name": "Codextent",
-  "version": "0.16.0",
+  "version": "0.18.0",
   "description": "Predict the output of C, C++, Java, Python and MySQL examples on learning sites, save notes, mark LeetCode problems, and insert C++ templates on CodeChef and LeetCode.",
   "icons": {
     "16": "icons/icon16.png",
