@@ -3,10 +3,10 @@
 </p>
 
 <p align="center">
-  <img alt="Chrome MV3" src="https://img.shields.io/badge/Chrome-Manifest%20V3-4c8dff?style=for-the-badge\&logo=googlechrome\&logoColor=white\&labelColor=0d1117">
-  <img alt="Vanilla JS" src="https://img.shields.io/badge/JavaScript-vanilla-fbbf24?style=for-the-badge\&logo=javascript\&logoColor=white\&labelColor=0d1117">
-  <img alt="Tests" src="https://img.shields.io/badge/tests-171%20unit%20%C2%B7%2030%20browser-34d399?style=for-the-badge\&labelColor=0d1117">
-  <img alt="No server" src="https://img.shields.io/badge/data-stays%20in%20your%20browser-b59cff?style=for-the-badge\&labelColor=0d1117">
+  <img alt="Chrome MV3" src="https://img.shields.io/badge/Chrome-Manifest%20V3-4c8dff?style=for-the-badge\\\&logo=googlechrome\\\&logoColor=white\\\&labelColor=0d1117">
+  <img alt="Vanilla JS" src="https://img.shields.io/badge/JavaScript-vanilla-fbbf24?style=for-the-badge\\\&logo=javascript\\\&logoColor=white\\\&labelColor=0d1117">
+  <img alt="Tests" src="https://img.shields.io/badge/tests-171%20unit%20%C2%B7%2030%20browser-34d399?style=for-the-badge\\\&labelColor=0d1117">
+  <img alt="No server" src="https://img.shields.io/badge/data-stays%20in%20your%20browser-b59cff?style=for-the-badge\\\&labelColor=0d1117">
 </p>
 
 <h3 align="center">Read less. Predict more. Remember everything.</h3>
@@ -55,7 +55,7 @@
   </tr>
   <tr>
     <td valign="top">
-      <h3>🟣 Notes and key points</h3>
+      <h3>🟣 Note and key points</h3>
       Select any text on a tutorial page and save it as a <b>Key point</b> or <b>Note</b>. Right-click code (or <b>Alt+Shift+S</b>) to clip it. On CodeChef and LeetCode, the <b>Notes</b> tab saves your idea for the problem.
     </td>
     <td valign="top">
@@ -88,7 +88,7 @@
 3. Click **Load unpacked** and pick the folder.
 4. Open any tutorial page, for example a C++ for-loop on GeeksforGeeks, and look for the bar under the code.
 
-> Updating? Replace the files, then press \*\*↻ Reload\*\* on the extension card and \*\*Ctrl+F5\*\* on open tabs.
+> Updating? Replace the files, then press \\\*\\\*↻ Reload\\\*\\\* on the extension card and \\\*\\\*Ctrl+F5\\\*\\\* on open tabs.
 
 ## ⌨️ Shortcuts
 
@@ -105,15 +105,15 @@
 
 ```mermaid
 flowchart LR
-  S(\[Student]) -->|types a guess| P\[Predict bar<br/>content script]
-  W\[(10 websites)] -->|code examples| P
-  P -->|CHECK| R\[Fast runner<br/>service worker]
-  R -->|first| WB\[Wandbox]
-  R -.->|after 4 s| J0\[Judge0 CE]
-  R -->|save| L\[(chrome.storage.local)]
-  T\[Template picker] -->|insert| ED\[Ace / Monaco editor]
-  B\[Solve-later board] -->|sync| SY\[(chrome.storage.sync)]
-  L --> H\[My Learning Hub]
+  S(\\\[Student]) -->|types a guess| P\\\[Predict bar<br/>content script]
+  W\\\[(10 websites)] -->|code examples| P
+  P -->|CHECK| R\\\[Fast runner<br/>service worker]
+  R -->|first| WB\\\[Wandbox]
+  R -.->|after 4 s| J0\\\[Judge0 CE]
+  R -->|save| L\\\[(chrome.storage.local)]
+  T\\\[Template picker] -->|insert| ED\\\[Ace / Monaco editor]
+  B\\\[Solve-later board] -->|sync| SY\\\[(chrome.storage.sync)]
+  L --> H\\\[My Learning Hub]
   SY --> H
 ```
 
